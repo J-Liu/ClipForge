@@ -96,6 +96,29 @@ class MainViewController: NSViewController {
             self?.toggleSegment(at: index)
         }
 
+        segmentBar.onCutPointDragged = { [weak self] index, time in
+            guard let self, index < self.cutPoints.count else { return }
+            self.cutPoints[index] = time
+            self.rebuildSegments()
+            // Update the time input field live.
+            self.timeInputView.setTime(time)
+            self.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
+        }
+
+        segmentBar.onCutPointDragEnded = { [weak self] index, time in
+            guard let self, index < self.cutPoints.count else { return }
+            self.cutPoints[index] = time
+            self.cutPoints.sort { CMTimeGetSeconds($0) < CMTimeGetSeconds($1) }
+            self.rebuildSegments()
+            self.playerController.seek(to: time)
+        }
+
+        segmentBar.onCutPointDeleted = { [weak self] index in
+            guard let self, index < self.cutPoints.count else { return }
+            self.cutPoints.remove(at: index)
+            self.rebuildSegments()
+        }
+
         NSLayoutConstraint.activate([
             // Player view — fills the top, bottom anchored above the segment bar.
             playerView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -283,6 +306,7 @@ class MainViewController: NSViewController {
         segments = newSegments
         segmentBar.segments = newSegments
         segmentBar.totalDuration = total
+        segmentBar.cutPoints = cutPoints
     }
 
     private func toggleSegment(at index: Int) {

@@ -18,6 +18,21 @@ class SegmentBarView: NSView {
     private let keptColor = NSColor.systemGreen.withAlphaComponent(0.55)
     private let removedColor = NSColor.systemGray.withAlphaComponent(0.45)
 
+    /// Cut point times, sorted. Used for hit-testing and dragging.
+    var cutPoints: [CMTime] = [] {
+        didSet { needsDisplay = true }
+    }
+
+    /// Called continuously while dragging a cut point.
+    var onCutPointDragged: ((Int, CMTime) -> Void)?
+    /// Called when a cut point drag ends.
+    var onCutPointDragEnded: ((Int, CMTime) -> Void)?
+    /// Called when a cut point is double-clicked for deletion.
+    var onCutPointDeleted: ((Int) -> Void)?
+
+    private var draggingCutIndex: Int?
+    private var dragStartTime: CMTime = .zero
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
@@ -62,17 +77,35 @@ class SegmentBarView: NSView {
                 line.stroke()
             }
         }
+
+        // Draw cut point handles on top of the segment colors.
+        for cut in cutPoints {
+            let x = CMTimeGetSeconds(cut) / total * w
+            let handleRect = NSRect(x: x - 3, y: 0, width: 6, height: h)
+            NSColor.labelColor.setFill()
+            handleRect.fill()
+        }
     }
 
     override func mouseDown(with event: NSEvent) {
-        guard !segments.isEmpty else { return }
         let point = convert(event.locationInWindow, from: nil)
         let total = CMTimeGetSeconds(totalDuration)
         guard total > 0 else { return }
 
+        // Check if a cut point handle was hit first.
+        if let hitIndex = hitTestCutPoint(at: point) {
+            if event.clickCount == 2 {
+                onCutPointDeleted?(hitIndex)
+                return
+            }
+            draggingCutIndex = hitIndex
+            return
+        }
+
+        // Otherwise fall back to segment selection.
+        guard !segments.isEmpty else { return }
         let clickTime = Double(point.x / bounds.width) * total
 
-        // Find the segment containing the click, or the nearest one.
         var bestIndex = 0
         var bestDistance = Double.greatestFiniteMagnitude
         for (index, segment) in segments.enumerated() {
@@ -90,7 +123,55 @@ class SegmentBarView: NSView {
                 bestIndex = index
             }
         }
-
         onSegmentClicked?(bestIndex)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let index = draggingCutIndex else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        let total = CMTimeGetSeconds(totalDuration)
+        guard total > 0 else { return }
+
+        let x = max(0, min(point.x, bounds.width))
+        let t = Double(x / bounds.width) * total
+
+        // Clamp between neighboring cut points (or timeline bounds).
+        let lower = index > 0 ? CMTimeGetSeconds(cutPoints[index - 1]) : 0
+        let upper = index < cutPoints.count - 1 ? CMTimeGetSeconds(cutPoints[index + 1]) : total
+        let clamped = max(lower + 0.001, min(t, upper - 0.001))
+
+        let newTime = CMTime(seconds: clamped, preferredTimescale: 600)
+        onCutPointDragged?(index, newTime)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard let index = draggingCutIndex else { return }
+        draggingCutIndex = nil
+        let point = convert(event.locationInWindow, from: nil)
+        let total = CMTimeGetSeconds(totalDuration)
+        guard total > 0 else { return }
+
+        let x = max(0, min(point.x, bounds.width))
+        let t = Double(x / bounds.width) * total
+        let lower = index > 0 ? CMTimeGetSeconds(cutPoints[index - 1]) : 0
+        let upper = index < cutPoints.count - 1 ? CMTimeGetSeconds(cutPoints[index + 1]) : total
+        let clamped = max(lower + 0.001, min(t, upper - 0.001))
+
+        let newTime = CMTime(seconds: clamped, preferredTimescale: 600)
+        onCutPointDragEnded?(index, newTime)
+    }
+
+    private func hitTestCutPoint(at point: NSPoint) -> Int? {
+        let total = CMTimeGetSeconds(totalDuration)
+        guard total > 0 else { return nil }
+        let w = bounds.width
+
+        for (index, cut) in cutPoints.enumerated() {
+            let x = CMTimeGetSeconds(cut) / total * w
+            if abs(point.x - x) <= 6 {
+                return index
+            }
+        }
+        return nil
     }
 }

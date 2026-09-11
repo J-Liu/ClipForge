@@ -18,7 +18,7 @@ class PlayerView: NSView {
 
     override func layout() {
         super.layout()
-        // 关闭隐式动画，避免窗口 resize 时 layer 抖动
+        // Disable implicit animations to avoid layer jitter during window resize.
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         playerLayer.frame = bounds
@@ -29,4 +29,3 @@ class PlayerView: NSView {
         playerLayer.player = player
     }
 }
-

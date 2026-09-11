@@ -15,12 +15,14 @@ class CompositionBuilder {
     /// - Parameters:
     ///   - sourceURL: original video file
     ///   - segments: all segments, with isKept marking which to include
+    ///   - cropRect: optional crop rectangle in video pixel coordinates
     ///   - outputURL: destination file URL
     ///   - progress: called on main thread with 0.0...1.0
     ///   - completion: called on main thread with success or error
     static func export(
         sourceURL: URL,
         segments: [Segment],
+        cropRect: NSRect?,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -78,8 +80,18 @@ class CompositionBuilder {
                     compositionVideoTrack.preferredTransform = transform
                 }
 
+                // Build the video composition for cropping, if needed.
+                var videoComposition: AVMutableVideoComposition? = nil
+                if let cropRect = cropRect, cropRect.width > 0, cropRect.height > 0 {
+                    videoComposition = makeVideoComposition(
+                        composition: composition,
+                        cropRect: cropRect
+                    )
+                }
+
                 runExport(
                     composition: composition,
+                    videoComposition: videoComposition,
                     outputURL: outputURL,
                     progress: progress,
                     completion: completion
@@ -92,8 +104,45 @@ class CompositionBuilder {
         }
     }
 
+    /// Build an AVMutableVideoComposition that crops every frame to `cropRect`.
+    private static func makeVideoComposition(
+        composition: AVMutableComposition,
+        cropRect: NSRect
+    ) -> AVMutableVideoComposition? {
+        guard let videoTrack = composition.tracks(withMediaType: .video).first else {
+            return nil
+        }
+
+        let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
+
+        // Crop the full video frame first.
+        let fullSize = videoTrack.naturalSize
+        let fullCrop = CGRect(x: 0, y: 0, width: fullSize.width, height: fullSize.height)
+        instruction.setCropRectangle(fullCrop, at: .zero)
+
+        // Translate so the desired region lands at (0, 0).
+        // cropRect.origin.y is top-down; CG transform y is bottom-up.
+        let translate = CGAffineTransform(
+            translationX: -cropRect.origin.x,
+            y: -(fullSize.height - cropRect.origin.y - cropRect.height)
+        )
+        instruction.setTransform(translate, at: .zero)
+
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.renderSize = cropRect.size
+        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+
+        let instructionGroup = AVMutableVideoCompositionInstruction()
+        instructionGroup.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
+        instructionGroup.layerInstructions = [instruction]
+        videoComposition.instructions = [instructionGroup]
+
+        return videoComposition
+    }
+
     private static func runExport(
         composition: AVMutableComposition,
+        videoComposition: AVMutableVideoComposition?,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -112,6 +161,11 @@ class CompositionBuilder {
         session.outputURL = outputURL
         session.outputFileType = .mp4
         session.shouldOptimizeForNetworkUse = true
+
+        // Attach the crop composition if present.
+        if let videoComposition = videoComposition {
+            session.videoComposition = videoComposition
+        }
 
         // Poll progress on a timer.
         let timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in

@@ -46,6 +46,10 @@ class MainViewController: NSViewController {
         return b
     }()
 
+    private let cropOverlay = CropOverlayView()
+    private var videoNaturalSize: CGSize = .zero
+    private var cropRect: NSRect?   // in video pixel coordinates, nil = no crop
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -67,13 +71,14 @@ class MainViewController: NSViewController {
         segmentBar.translatesAutoresizingMaskIntoConstraints = false
         setButton.translatesAutoresizingMaskIntoConstraints = false
         exportButton.translatesAutoresizingMaskIntoConstraints = false
-        exportButton.target = self
+        cropOverlay.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
 
         openButton.target = self
         openButton.action = #selector(openFile)
+
         playButton.target = self
         playButton.action = #selector(togglePlay)
 
@@ -87,6 +92,8 @@ class MainViewController: NSViewController {
         durationLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
         durationLabel.textColor = .secondaryLabelColor
         durationLabel.alignment = .right
+
+        exportButton.target = self
         exportButton.action = #selector(exportVideo)
 
         view.addSubview(playerView)
@@ -99,6 +106,7 @@ class MainViewController: NSViewController {
         view.addSubview(segmentBar)
         view.addSubview(setButton)
         view.addSubview(exportButton)
+        view.addSubview(cropOverlay)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -130,6 +138,18 @@ class MainViewController: NSViewController {
             guard let self, index < self.cutPoints.count else { return }
             self.cutPoints.remove(at: index)
             self.rebuildSegments()
+        }
+
+        // Pin to playerView exactly.
+        NSLayoutConstraint.activate([
+            cropOverlay.topAnchor.constraint(equalTo: playerView.topAnchor),
+            cropOverlay.leadingAnchor.constraint(equalTo: playerView.leadingAnchor),
+            cropOverlay.trailingAnchor.constraint(equalTo: playerView.trailingAnchor),
+            cropOverlay.bottomAnchor.constraint(equalTo: playerView.bottomAnchor)
+        ])
+
+        cropOverlay.onSelectionChanged = { [weak self] rect in
+            self?.updateCropRect(from: rect)
         }
 
         NSLayoutConstraint.activate([
@@ -247,6 +267,17 @@ class MainViewController: NSViewController {
             guard let self else { return }
             self.durationLabel.stringValue = TimeFormatter.displayString(from: self.playerController.duration)
         }
+
+        Task {
+            let asset = AVURLAsset(url: url)
+            if let track = try? await asset.loadTracks(withMediaType: .video).first {
+                let size = try? await track.load(.naturalSize)
+                await MainActor.run {
+                    self.videoNaturalSize = size ?? .zero
+                    self.updateOverlayContentRect()
+                }
+            }
+        }
     }
 
     @objc private func togglePlay() {
@@ -337,7 +368,10 @@ class MainViewController: NSViewController {
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.mpeg4Movie]
-        panel.nameFieldStringValue = "ClipForge-export.mp4"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let timestamp = formatter.string(from: Date())
+        panel.nameFieldStringValue = "ClipForge-\(timestamp).mp4"
         panel.canCreateDirectories = true
 
         panel.begin { [weak self] response in
@@ -357,6 +391,7 @@ class MainViewController: NSViewController {
         CompositionBuilder.export(
             sourceURL: sourceURL,
             segments: segments,
+            cropRect: cropRect,
             outputURL: outputURL,
             progress: { [weak self] value in
                 self?.view.window?.title = String(format: "Exporting… %.0f%%", value * 100)
@@ -386,5 +421,39 @@ class MainViewController: NSViewController {
         } else {
             alert.runModal()
         }
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        updateOverlayContentRect()
+    }
+
+    private var hasInitializedSelection = false
+
+    private func updateOverlayContentRect() {
+        guard videoNaturalSize.width > 0 else { return }
+        let displayRect = playerView.videoDisplayRect(for: videoNaturalSize)
+
+        cropOverlay.contentRect = displayRect
+    }
+
+    private func updateCropRect(from selectionRect: NSRect) {
+        guard videoNaturalSize.width > 0 else { return }
+        let displayRect = cropOverlay.contentRect
+        guard displayRect.width > 0, displayRect.height > 0 else { return }
+
+        let scaleX = videoNaturalSize.width / displayRect.width
+        let scaleY = videoNaturalSize.height / displayRect.height
+
+        let cropX = (selectionRect.minX - displayRect.minX) * scaleX
+        let cropY = (selectionRect.minY - displayRect.minY) * scaleY
+        let cropW = selectionRect.width * scaleX
+        let cropH = selectionRect.height * scaleY
+
+        // Force even dimensions — H.264 requires it.
+        let evenW = floor(cropW / 2) * 2
+        let evenH = floor(cropH / 2) * 2
+
+        cropRect = NSRect(x: cropX, y: cropY, width: evenW, height: evenH)
     }
 }

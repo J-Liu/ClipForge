@@ -38,6 +38,14 @@ class MainViewController: NSViewController {
     private var segments: [Segment] = []
     private var isSkipping = false
 
+    private let exportButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "arrow.down.doc",
+                                        accessibilityDescription: "Export")!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -58,6 +66,9 @@ class MainViewController: NSViewController {
         timeInputView.translatesAutoresizingMaskIntoConstraints = false
         segmentBar.translatesAutoresizingMaskIntoConstraints = false
         setButton.translatesAutoresizingMaskIntoConstraints = false
+        exportButton.translatesAutoresizingMaskIntoConstraints = false
+        exportButton.target = self
+
         setButton.target = self
         setButton.action = #selector(addCutPoint)
 
@@ -76,6 +87,7 @@ class MainViewController: NSViewController {
         durationLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
         durationLabel.textColor = .secondaryLabelColor
         durationLabel.alignment = .right
+        exportButton.action = #selector(exportVideo)
 
         view.addSubview(playerView)
         view.addSubview(openButton)
@@ -86,6 +98,7 @@ class MainViewController: NSViewController {
         view.addSubview(timeInputView)
         view.addSubview(segmentBar)
         view.addSubview(setButton)
+        view.addSubview(exportButton)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -156,7 +169,11 @@ class MainViewController: NSViewController {
             setButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16),
 
             timeInputView.leadingAnchor.constraint(equalTo: setButton.trailingAnchor, constant: 12),
-            timeInputView.centerYAnchor.constraint(equalTo: setButton.centerYAnchor)
+            timeInputView.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            // Place it on row 2, right side.
+            exportButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            exportButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
         ])
     }
 
@@ -313,5 +330,61 @@ class MainViewController: NSViewController {
         guard index >= 0, index < segments.count else { return }
         segments[index].isKept.toggle()
         segmentBar.segments = segments
+    }
+
+    @objc private func exportVideo() {
+        guard let sourceURL = playerController.currentURL else { return }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.mpeg4Movie]
+        panel.nameFieldStringValue = "ClipForge-export.mp4"
+        panel.canCreateDirectories = true
+
+        panel.begin { [weak self] response in
+            guard response == .OK, let outputURL = panel.url else { return }
+            self?.performExport(sourceURL: sourceURL, outputURL: outputURL)
+        }
+    }
+
+    private func performExport(sourceURL: URL, outputURL: URL) {
+        // Pause playback during export.
+        playerController.pause()
+
+        // Simple blocking-free progress: use the window title.
+        let originalTitle = view.window?.title ?? "ClipForge"
+        view.window?.title = "Exporting… 0%"
+
+        CompositionBuilder.export(
+            sourceURL: sourceURL,
+            segments: segments,
+            outputURL: outputURL,
+            progress: { [weak self] value in
+                self?.view.window?.title = String(format: "Exporting… %.0f%%", value * 100)
+            },
+            completion: { [weak self] result in
+                self?.view.window?.title = originalTitle
+                switch result {
+                case .success:
+                    self?.showAlert(title: "Export Complete",
+                                    message: outputURL.lastPathComponent)
+                case .failure(let error):
+                    self?.showAlert(title: "Export Failed",
+                                    message: error.localizedDescription)
+                }
+            }
+        )
+    }
+
+    private func showAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        if let window = view.window {
+            alert.beginSheetModal(for: window, completionHandler: nil)
+        } else {
+            alert.runModal()
+        }
     }
 }

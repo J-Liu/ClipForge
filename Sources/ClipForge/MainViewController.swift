@@ -15,6 +15,8 @@ class MainViewController: NSViewController {
     /// time updates don't fight with the drag position.
     private var isScrubbing = false
 
+    private let timeInputView = TimeInputView()
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -32,6 +34,7 @@ class MainViewController: NSViewController {
         slider.translatesAutoresizingMaskIntoConstraints = false
         currentTimeLabel.translatesAutoresizingMaskIntoConstraints = false
         durationLabel.translatesAutoresizingMaskIntoConstraints = false
+        timeInputView.translatesAutoresizingMaskIntoConstraints = false
 
         openButton.target = self
         openButton.action = #selector(openFile)
@@ -55,6 +58,12 @@ class MainViewController: NSViewController {
         view.addSubview(slider)
         view.addSubview(currentTimeLabel)
         view.addSubview(durationLabel)
+        view.addSubview(timeInputView)
+
+        timeInputView.onSeek = { [weak self] time in
+            self?.playerController.seek(to: time)
+            self?.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
+        }
 
         NSLayoutConstraint.activate([
             playerView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -77,7 +86,10 @@ class MainViewController: NSViewController {
 
             durationLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             durationLabel.centerYAnchor.constraint(equalTo: openButton.centerYAnchor),
-            durationLabel.widthAnchor.constraint(equalToConstant: 80)
+            durationLabel.widthAnchor.constraint(equalToConstant: 80),
+
+            timeInputView.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -12),
+            timeInputView.centerYAnchor.constraint(equalTo: openButton.centerYAnchor),
         ])
     }
 
@@ -86,6 +98,7 @@ class MainViewController: NSViewController {
             guard let self, !self.isScrubbing else { return }
             self.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
             self.updateSliderPosition(for: time)
+            self.timeInputView.setTime(time)
         }
 
         playerController.onPlaybackEnded = { [weak self] in

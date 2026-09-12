@@ -24,6 +24,10 @@ class Settings {
         static let dontHideWindow = "dontHideWindow"
         static let countdownSeconds = "countdownSeconds"
         static let quitAfterLastWindowClosed = "quitAfterLastWindowClosed"
+        static let captureSystemAudio = "captureSystemAudio"
+        static let captureMicrophone = "captureMicrophone"
+        static let frameRate = "frameRate"
+        static let videoCodec = "videoCodec"
     }
 
     var recordingMode: RecordingMode {
@@ -64,5 +68,34 @@ class Settings {
     var quitAfterLastWindowClosed: Bool {
         get { defaults.bool(forKey: Key.quitAfterLastWindowClosed) }
         set { defaults.set(newValue, forKey: Key.quitAfterLastWindowClosed) }
+    }
+
+    var captureSystemAudio: Bool {
+        get {
+            if defaults.object(forKey: Key.captureSystemAudio) == nil { return true }
+            return defaults.bool(forKey: Key.captureSystemAudio)
+        }
+        set { defaults.set(newValue, forKey: Key.captureSystemAudio) }
+    }
+
+    var captureMicrophone: Bool {
+        get {
+            if defaults.object(forKey: Key.captureMicrophone) == nil { return true }
+            return defaults.bool(forKey: Key.captureMicrophone)
+        }
+        set { defaults.set(newValue, forKey: Key.captureMicrophone) }
+    }
+
+    var frameRate: Int {
+        get {
+            let v = defaults.integer(forKey: Key.frameRate)
+            return v > 0 ? v : 30
+        }
+        set { defaults.set(newValue, forKey: Key.frameRate) }
+    }
+
+    var videoCodec: String {
+        get { defaults.string(forKey: Key.videoCodec) ?? "h264" }
+        set { defaults.set(newValue, forKey: Key.videoCodec) }
     }
 }

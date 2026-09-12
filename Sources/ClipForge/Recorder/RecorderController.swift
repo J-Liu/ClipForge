@@ -33,16 +33,23 @@ class RecorderController: NSObject {
                 let config = SCStreamConfiguration()
                 config.width = display.width
                 config.height = display.height
-                config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+                let fps = Settings.shared.frameRate
+                config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
                 config.queueDepth = 6
-                config.capturesAudio = true
+                config.capturesAudio = Settings.shared.captureSystemAudio
                 config.excludesCurrentProcessAudio = true
-                config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+                // config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
 
                 // 4. Prepare writer.
                 let outputURL = Self.makeOutputURL()
                 let recorder = ScreenRecorder(outputURL: outputURL)
-                try recorder.start(width: display.width, height: display.height)
+                try recorder.start(
+                    width: config.width,
+                    height: config.height,
+                    includeSystemAudio: Settings.shared.captureSystemAudio,
+                    includeMicrophone: Settings.shared.captureMicrophone,
+                    codec: Settings.shared.videoCodec
+                )
                 self.recorder = recorder
 
                 // 5. Create and start stream.
@@ -53,10 +60,12 @@ class RecorderController: NSObject {
                 self.stream = stream
                 self.isRecording = true
 
-                mic.onSampleBuffer = { [weak self] buffer in
-                    self?.recorder?.appendMicrophone(buffer)
+                if Settings.shared.captureMicrophone {
+                    mic.onSampleBuffer = { [weak self] buffer in
+                        self?.recorder?.appendMicrophone(buffer)
+                    }
+                    try mic.start()
                 }
-                try mic.start()
 
                 await MainActor.run { completion(nil) }
             } catch {
@@ -104,14 +113,21 @@ class RecorderController: NSObject {
                 let config = SCStreamConfiguration()
                 config.width = Int(window.frame.width) * 2
                 config.height = Int(window.frame.height) * 2
-                config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+                let fps = Settings.shared.frameRate
+                config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
                 config.queueDepth = 6
-                config.capturesAudio = false
+                config.capturesAudio = Settings.shared.captureSystemAudio
                 config.excludesCurrentProcessAudio = true
 
                 let outputURL = Self.makeOutputURL()
                 let recorder = ScreenRecorder(outputURL: outputURL)
-                try recorder.start(width: config.width, height: config.height)
+                try recorder.start(
+                    width: config.width,
+                    height: config.height,
+                    includeSystemAudio: Settings.shared.captureSystemAudio,
+                    includeMicrophone: Settings.shared.captureMicrophone,
+                    codec: Settings.shared.videoCodec
+                )
                 self.recorder = recorder
 
                 let stream = SCStream(filter: filter, configuration: config, delegate: self)
@@ -120,6 +136,13 @@ class RecorderController: NSObject {
                 try await stream.startCapture()
                 self.stream = stream
                 self.isRecording = true
+
+                if Settings.shared.captureMicrophone {
+                    mic.onSampleBuffer = { [weak self] buffer in
+                        self?.recorder?.appendMicrophone(buffer)
+                    }
+                    try mic.start()
+                }
 
                 // Show the highlight around the target window.
                 let screenRect = Self.screenRect(from: window.frame)
@@ -166,14 +189,21 @@ class RecorderController: NSObject {
                 )
                 config.width = Int(region.width)
                 config.height = Int(region.height)
-                config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+                let fps = Settings.shared.frameRate
+                config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
                 config.queueDepth = 6
-                config.capturesAudio = false
+                config.capturesAudio = Settings.shared.captureSystemAudio
                 config.excludesCurrentProcessAudio = true
 
                 let outputURL = Self.makeOutputURL()
                 let recorder = ScreenRecorder(outputURL: outputURL)
-                try recorder.start(width: config.width, height: config.height)
+                try recorder.start(
+                    width: config.width,
+                    height: config.height,
+                    includeSystemAudio: Settings.shared.captureSystemAudio,
+                    includeMicrophone: Settings.shared.captureMicrophone,
+                    codec: Settings.shared.videoCodec
+                )
                 self.recorder = recorder
 
                 let stream = SCStream(filter: filter, configuration: config, delegate: self)
@@ -182,6 +212,13 @@ class RecorderController: NSObject {
                 try await stream.startCapture()
                 self.stream = stream
                 self.isRecording = true
+
+                if Settings.shared.captureMicrophone {
+                    mic.onSampleBuffer = { [weak self] buffer in
+                        self?.recorder?.appendMicrophone(buffer)
+                    }
+                    try mic.start()
+                }
 
                 await MainActor.run {
                     self.highlight.showFixed(around: region)

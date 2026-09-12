@@ -126,7 +126,12 @@ class StatusBarController {
 
     /// Start a 3-second countdown, firing onCountdownTick each second.
     func startCountdown(onTick: @escaping (Int) -> Void, onFinish: @escaping () -> Void) {
-        var remaining = 3
+        let seconds = Settings.shared.countdownSeconds
+        if seconds <= 0 {
+            onFinish()
+            return
+        }
+        var remaining = seconds
         setState(.countdown(remaining))
         onTick(remaining)
 

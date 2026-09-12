@@ -136,6 +136,10 @@ class MainViewController: NSViewController {
         exportButton.target = self
         exportButton.action = #selector(exportVideo)
 
+        dontHideCheckbox.target = self
+        dontHideCheckbox.action = #selector(dontHideChanged)
+        dontHideCheckbox.state = Settings.shared.dontHideWindow ? .on : .off
+
         recordButton.target = self
         recordButton.action = #selector(recordButtonPressed)
         recordButton.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -764,5 +768,9 @@ class MainViewController: NSViewController {
     /// Seek by a relative number of seconds.
     func seek(bySeconds seconds: Double) {
         playerController.seek(bySeconds: seconds)
+    }
+
+    @objc private func dontHideChanged() {
+        Settings.shared.dontHideWindow = (dontHideCheckbox.state == .on)
     }
 }

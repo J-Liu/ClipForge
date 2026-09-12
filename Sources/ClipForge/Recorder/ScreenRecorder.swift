@@ -15,13 +15,22 @@ class ScreenRecorder {
     }
 
     /// Create the writer and all inputs.
-    func start(width: Int, height: Int) throws {
+    func start(width: Int,
+               height: Int,
+               includeSystemAudio: Bool,
+               includeMicrophone: Bool,
+               codec: String) throws {
         try? FileManager.default.removeItem(at: outputURL)
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
         self.assetWriter = writer
 
+        let codecType: AVVideoCodecType
+        switch codec {
+        case "h265": codecType = .hevc
+        default:     codecType = .h264
+        }
         let videoSettings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoCodecKey: codecType,
             AVVideoWidthKey: width,
             AVVideoHeightKey: height,
             AVVideoCompressionPropertiesKey: [
@@ -34,27 +43,30 @@ class ScreenRecorder {
         writer.add(video)
         self.videoInput = video
 
-        let audioSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: 48000,
-            AVNumberOfChannelsKey: 2,
-            AVEncoderBitRateKey: 128000
-        ]
-        let audio = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-        audio.expectsMediaDataInRealTime = true
-        writer.add(audio)
-        self.audioInput = audio
-
-        let micSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVSampleRateKey: 48000,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderBitRateKey: 64000
-        ]
-        let mic = AVAssetWriterInput(mediaType: .audio, outputSettings: micSettings)
-        mic.expectsMediaDataInRealTime = true
-        writer.add(mic)
-        self.micInput = mic
+        if includeSystemAudio {
+            let audioSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128000
+            ]
+            let audio = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+            audio.expectsMediaDataInRealTime = true
+            writer.add(audio)
+            self.audioInput = audio
+        }
+        if includeMicrophone {
+            let micSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderBitRateKey: 64000
+            ]
+            let mic = AVAssetWriterInput(mediaType: .audio, outputSettings: micSettings)
+            mic.expectsMediaDataInRealTime = true
+            writer.add(mic)
+            self.micInput = mic
+        }
 
         writer.startWriting()
     }

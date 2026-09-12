@@ -24,16 +24,8 @@ class RecorderController: NSObject {
                                   userInfo: [NSLocalizedDescriptionKey: "No display found"])
                 }
 
-                // 2. Build filter for the whole display, excluding our own app.
-                let ourApp = content.applications.first {
-                    $0.bundleIdentifier == Bundle.main.bundleIdentifier
-                }
-                let excludedApps = ourApp.map { [$0] } ?? []
-                let filter = SCContentFilter(
-                    display: display,
-                    excludingApplications: excludedApps,
-                    exceptingWindows: []
-                )
+                // 2. Build filter for the whole display.
+                let filter = SCContentFilter(display: display, excludingWindows: [])
 
                 // 3. Configure stream.
                 let config = SCStreamConfiguration()

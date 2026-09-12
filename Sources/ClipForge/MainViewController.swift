@@ -73,6 +73,9 @@ class MainViewController: NSViewController {
         return box
     }()
 
+    private let statusBar = StatusBarController()
+    private let dontHideCheckbox = NSButton(checkboxWithTitle: "Don't hide", target: nil, action: nil)
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -80,6 +83,18 @@ class MainViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+
+        statusBar.show()
+        statusBar.onCancel = { [weak self] in
+            self?.cancelRecordingCountdown()
+        }
+        statusBar.onStop = { [weak self] in
+            self?.stopRecording()
+        }
+        statusBar.onTogglePause = { [weak self] in
+            self?.togglePauseRecording()
+        }
+
         setupCallbacks()
     }
 
@@ -97,6 +112,7 @@ class MainViewController: NSViewController {
         cropOverlay.translatesAutoresizingMaskIntoConstraints = false
         recordButton.translatesAutoresizingMaskIntoConstraints = false
         stopRecordButton.translatesAutoresizingMaskIntoConstraints = false
+        dontHideCheckbox.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -140,6 +156,7 @@ class MainViewController: NSViewController {
         view.addSubview(recordButton)
         view.addSubview(stopRecordButton)
         view.addSubview(separator)
+        view.addSubview(dontHideCheckbox)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -240,6 +257,9 @@ class MainViewController: NSViewController {
 
             stopRecordButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             stopRecordButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            dontHideCheckbox.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -8),
+            dontHideCheckbox.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
         ])
     }
 
@@ -504,14 +524,53 @@ class MainViewController: NSViewController {
     }
 
     @objc private func startRecording() {
+        // Disable UI during countdown.
+        recordButton.isEnabled = false
+        stopRecordButton.isEnabled = false
+
+        statusBar.startCountdown(onTick: { _ in
+            // The status bar handles its own display.
+        }, onFinish: { [weak self] in
+            self?.beginActualRecording()
+        })
+    }
+
+    private func beginActualRecording() {
         recorder.startRecording { [weak self] error in
             guard let self else { return }
             if let error = error {
                 self.showAlert(title: "Recording Failed", message: error.localizedDescription)
-            } else {
-                self.recordButton.isEnabled = false
-                self.stopRecordButton.isEnabled = true
+                self.statusBar.setState(.idle)
+                self.recordButton.isEnabled = true
+                self.stopRecordButton.isEnabled = false
+                return
             }
+            self.statusBar.setState(.recording)
+            self.stopRecordButton.isEnabled = true
+            if self.dontHideCheckbox.state == .off {
+                self.view.window?.orderOut(nil)
+            }
+        }
+    }
+
+    private func cancelRecordingCountdown() {
+        statusBar.setState(.idle)
+        recordButton.isEnabled = true
+        stopRecordButton.isEnabled = false
+    }
+
+    private func togglePauseRecording() {
+        // Placeholder: ScreenCaptureKit doesn't have a native pause.
+        // We'll implement pause by stopping and restarting, or by
+        // ignoring frames during the pause window.
+        // For now, just toggle the status bar state.
+        switch statusBar.state {
+        case .recording:
+            statusBar.setState(.paused)
+        case .paused:
+            statusBar.setState(.recording)
+        default:
+            break
         }
     }
 
@@ -519,8 +578,10 @@ class MainViewController: NSViewController {
         recorder.stopRecording { [weak self] url in
             DispatchQueue.main.async {
                 guard let self else { return }
+                self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
                 self.stopRecordButton.isEnabled = false
+                self.view.window?.makeKeyAndOrderFront(nil)
                 if let url = url {
                     self.showAlert(title: "Recording Saved", message: url.path)
                 } else {

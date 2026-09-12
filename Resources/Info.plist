@@ -27,5 +27,7 @@
     <string>ClipForge needs screen recording permission to capture your screen.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>ClipForge needs microphone access to record audio.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Jia Liu. All rights reserved.</string>
 </dict>
 </plist>

@@ -5,6 +5,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         MenuBuilder.build()
+        installKeyMonitor()
         showMainWindow()
 
         NotificationCenter.default.addObserver(
@@ -13,18 +14,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             self?.windowController = nil
-        }
-
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // Space key = keyCode 49.
-            guard event.keyCode == 49 else { return event }
-            // Let text fields handle it.
-            if let responder = NSApp.keyWindow?.firstResponder,
-               responder is NSTextView {
-                return event
-            }
-            AppActions.shared.togglePlay()
-            return nil   // consume the event
         }
     }
 
@@ -45,5 +34,61 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController?.showWindow(nil)
         windowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func installKeyMonitor() {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Ignore when a modifier (except shift) is held.
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains(.command) || flags.contains(.option) || flags.contains(.control) {
+                return event
+            }
+
+            // Let text fields handle everything.
+            if let responder = NSApp.keyWindow?.firstResponder,
+               responder is NSTextView {
+                return event
+            }
+
+            if event.keyCode == 49 {
+                if let responder = NSApp.keyWindow?.firstResponder,
+                   responder is NSButton {
+                    return event   // let the button handle it
+                }
+                AppActions.shared.togglePlay()
+                return nil
+            }
+
+            // Map the key to an action.
+            switch event.keyCode {
+            case 123:   // left arrow
+                AppActions.shared.backOneFrame(); return nil
+            case 124:   // right arrow
+                AppActions.shared.forwardOneFrame(); return nil
+            case 125:   // down arrow
+                AppActions.shared.backFiveSeconds(); return nil
+            case 126:   // up arrow
+                AppActions.shared.forwardFiveSeconds(); return nil
+            default:
+                break
+            }
+
+            // Letter keys.
+            guard let chars = event.charactersIgnoringModifiers?.lowercased() else {
+                return event
+            }
+            switch chars {
+            case "a", "h":
+                AppActions.shared.backOneFrame(); return nil
+            case "d", "l":
+                AppActions.shared.forwardOneFrame(); return nil
+            case "s", "k":
+                AppActions.shared.backFiveSeconds(); return nil
+            case "w", "j":
+                AppActions.shared.forwardFiveSeconds(); return nil
+            default:
+                return event
+            }
+        }
     }
 }

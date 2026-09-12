@@ -25,6 +25,11 @@ class AppActions {
     @objc func setModeRegion() { mainViewController?.setRecordingMode(.region) }
     @objc func startRecording() { mainViewController?.recordButtonPressedAction() }
 
+    @objc func backOneFrame() { mainViewController?.stepFrames(-1) }
+    @objc func forwardOneFrame() { mainViewController?.stepFrames(1) }
+    @objc func backFiveSeconds() { mainViewController?.seek(bySeconds: -5) }
+    @objc func forwardFiveSeconds() { mainViewController?.seek(bySeconds: 5) }
+
     @objc func openSettings() {
         // TODO: settings window (next step)
     }

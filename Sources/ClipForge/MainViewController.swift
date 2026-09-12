@@ -513,6 +513,11 @@ class MainViewController: NSViewController {
         updateOverlayContentRect()
     }
 
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        view.window?.makeFirstResponder(playerView)
+    }
+
     private func updateOverlayContentRect() {
         guard videoNaturalSize.width > 0 else { return }
         let displayRect = playerView.videoDisplayRect(for: videoNaturalSize)
@@ -741,5 +746,23 @@ class MainViewController: NSViewController {
         guard let raw = sender.representedObject as? String,
               let mode = RecordingMode(rawValue: raw) else { return }
         setRecordingMode(mode)
+    }
+
+    /// Step playback by N frames (positive = forward).
+    func stepFrames(_ count: Int) {
+        guard playerController.duration.isValid else { return }
+        let current = CMTimeGetSeconds(playerController.player.currentTime())
+        // Assume 30 fps; refine when we expose frame rate in settings.
+        let frameDuration = 1.0 / 30.0
+        let target = max(0, min(
+            current + Double(count) * frameDuration,
+            CMTimeGetSeconds(playerController.duration)
+        ))
+        playerController.seek(to: CMTime(seconds: target, preferredTimescale: 600))
+    }
+
+    /// Seek by a relative number of seconds.
+    func seek(bySeconds seconds: Double) {
+        playerController.seek(bySeconds: seconds)
     }
 }

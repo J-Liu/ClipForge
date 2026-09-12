@@ -14,6 +14,8 @@ class PlayerView: NSView {
 
     override var isFlipped: Bool { true }
 
+    override var acceptsFirstResponder: Bool { true }
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -25,6 +27,11 @@ class PlayerView: NSView {
         CATransaction.setDisableActions(true)
         playerLayer.frame = bounds
         CATransaction.commit()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        super.mouseDown(with: event)
     }
 
     func attach(player: AVPlayer) {

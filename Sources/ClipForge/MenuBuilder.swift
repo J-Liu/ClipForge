@@ -143,8 +143,30 @@ class MenuBuilder {
         play.target = AppActions.shared
         menu.addItem(play)
 
+        menu.addItem(.separator())
+
+        addPlaybackItem(to: menu, title: "Back 1 Frame",
+                        action: #selector(AppActions.backOneFrame),
+                        key: "\u{F702}")   // left arrow
+        addPlaybackItem(to: menu, title: "Forward 1 Frame",
+                        action: #selector(AppActions.forwardOneFrame),
+                        key: "\u{F703}")   // right arrow
+        addPlaybackItem(to: menu, title: "Back 5 Seconds",
+                        action: #selector(AppActions.backFiveSeconds),
+                        key: "\u{F701}")   // down arrow
+        addPlaybackItem(to: menu, title: "Forward 5 Seconds",
+                        action: #selector(AppActions.forwardFiveSeconds),
+                        key: "\u{F700}")   // up arrow
+
         item.submenu = menu
         return item
+    }
+
+    private static func addPlaybackItem(to menu: NSMenu, title: String, action: Selector, key: String) {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.keyEquivalentModifierMask = []
+        item.target = AppActions.shared
+        menu.addItem(item)
     }
 
     // MARK: - Record Menu

@@ -105,5 +105,6 @@ class TimeInputView: NSView {
         let total = h * 3600 + m * 60 + s + ms / 1000.0
         let time = CMTime(seconds: total, preferredTimescale: 600)
         onSeek?(time)
+        window?.selectNextKeyView(nil)
     }
 }

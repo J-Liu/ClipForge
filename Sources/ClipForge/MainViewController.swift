@@ -76,6 +76,12 @@ class MainViewController: NSViewController {
     private let statusBar = StatusBarController()
     private let dontHideCheckbox = NSButton(checkboxWithTitle: "Don't hide", target: nil, action: nil)
 
+    // For mic test====================
+    private let audioRecorderTestButton = NSButton(title: "Mic Test", target: nil, action: nil)
+    private let audioRecorderStopButton = NSButton(title: "Mic Stop", target: nil, action: nil)
+    private var audioRecorder: AudioRecorder?
+    // For mic test====================
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -113,6 +119,18 @@ class MainViewController: NSViewController {
         recordButton.translatesAutoresizingMaskIntoConstraints = false
         stopRecordButton.translatesAutoresizingMaskIntoConstraints = false
         dontHideCheckbox.translatesAutoresizingMaskIntoConstraints = false
+
+        // For mic test====================
+        audioRecorderTestButton.translatesAutoresizingMaskIntoConstraints = false
+        audioRecorderStopButton.translatesAutoresizingMaskIntoConstraints = false
+        audioRecorderTestButton.target = self
+        audioRecorderTestButton.action = #selector(startMicTest)
+        audioRecorderStopButton.target = self
+        audioRecorderStopButton.action = #selector(stopMicTest)
+        audioRecorderStopButton.isEnabled = false
+        view.addSubview(audioRecorderTestButton)
+        view.addSubview(audioRecorderStopButton)
+        // For mic test====================
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -260,6 +278,14 @@ class MainViewController: NSViewController {
 
             dontHideCheckbox.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -8),
             dontHideCheckbox.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            // For mic test====================
+            audioRecorderTestButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            audioRecorderTestButton.topAnchor.constraint(equalTo: setButton.bottomAnchor, constant: 8),
+
+            audioRecorderStopButton.leadingAnchor.constraint(equalTo: audioRecorderTestButton.trailingAnchor, constant: 8),
+            audioRecorderStopButton.centerYAnchor.constraint(equalTo: audioRecorderTestButton.centerYAnchor),
+            // For mic test====================
         ])
     }
 
@@ -587,6 +613,33 @@ class MainViewController: NSViewController {
                 } else {
                     self.showAlert(title: "Recording Failed", message: "No file was written.")
                 }
+            }
+        }
+    }
+
+    @objc private func startMicTest() {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ClipForge-mic-test.m4a")
+        let recorder = AudioRecorder(outputURL: url)
+        do {
+            try recorder.start()
+            audioRecorder = recorder
+            audioRecorderTestButton.isEnabled = false
+            audioRecorderStopButton.isEnabled = true
+        } catch {
+            showAlert(title: "Mic Failed", message: error.localizedDescription)
+        }
+    }
+
+    @objc private func stopMicTest() {
+        audioRecorder?.stop { url in
+            self.audioRecorder = nil
+            self.audioRecorderTestButton.isEnabled = true
+            self.audioRecorderStopButton.isEnabled = false
+            if let url = url {
+                self.showAlert(title: "Mic Saved", message: url.path)
+            } else {
+                self.showAlert(title: "Mic Failed", message: "No file was written.")
             }
         }
     }

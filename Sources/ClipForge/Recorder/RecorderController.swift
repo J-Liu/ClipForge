@@ -7,6 +7,7 @@ class RecorderController: NSObject {
     private var stream: SCStream?
     private var recorder: ScreenRecorder?
     private let sampleQueue = DispatchQueue(label: "ClipForge.recorder.samples")
+    private let mic = MicrophoneCapture()
 
     private(set) var isRecording = false
 
@@ -33,7 +34,8 @@ class RecorderController: NSObject {
                 config.height = display.height
                 config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
                 config.queueDepth = 6
-                config.capturesAudio = true
+                // config.capturesAudio = true
+                config.capturesAudio = false
                 config.excludesCurrentProcessAudio = true
                 config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
 
@@ -51,6 +53,11 @@ class RecorderController: NSObject {
                 self.stream = stream
                 self.isRecording = true
 
+                mic.onSampleBuffer = { [weak self] buffer in
+                    self?.recorder?.appendMicrophone(buffer)
+                }
+                try mic.start()
+
                 await MainActor.run { completion(nil) }
             } catch {
                 await MainActor.run { completion(error) }
@@ -66,6 +73,7 @@ class RecorderController: NSObject {
         }
         Task {
             try? await stream.stopCapture()
+            mic.stop()
             self.stream = nil
             self.isRecording = false
             recorder.finish { url in

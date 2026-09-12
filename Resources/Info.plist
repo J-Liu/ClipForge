@@ -25,7 +25,7 @@
     <string>NSApplication</string>
     <key>NSScreenCaptureUsageDescription</key>
     <string>ClipForge needs screen recording permission to capture your screen.</string>
-
-
+    <key>NSMicrophoneUsageDescription</key>
+    <string>ClipForge needs microphone access to record audio.</string>
 </dict>
 </plist>

@@ -6,6 +6,7 @@ class ScreenRecorder {
     private var assetWriter: AVAssetWriter?
     private var videoInput: AVAssetWriterInput?
     private var audioInput: AVAssetWriterInput?
+    private var micInput: AVAssetWriterInput?
     private var isSessionStarted = false
     private let outputURL: URL
 
@@ -45,6 +46,17 @@ class ScreenRecorder {
         writer.add(audio)
         self.audioInput = audio
 
+        let micSettings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVSampleRateKey: 48000,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderBitRateKey: 64000
+        ]
+        let mic = AVAssetWriterInput(mediaType: .audio, outputSettings: micSettings)
+        mic.expectsMediaDataInRealTime = true
+        writer.add(mic)
+        self.micInput = mic
+
         writer.startWriting()
     }
 
@@ -81,9 +93,20 @@ class ScreenRecorder {
         guard writer.status == .writing else { completion(nil); return }
         videoInput?.markAsFinished()
         audioInput?.markAsFinished()
+        micInput?.markAsFinished()
         writer.finishWriting {
             DispatchQueue.main.async {
                 completion(writer.status == .completed ? self.outputURL : nil)
+            }
+        }
+    }
+
+    func appendMicrophone(_ sampleBuffer: CMSampleBuffer) {
+        guard let writer = assetWriter, writer.status == .writing, isSessionStarted else { return }
+        if let input = micInput, input.isReadyForMoreMediaData {
+            let ok = input.append(sampleBuffer)
+            if !ok {
+                print("mic append failed: \(String(describing: writer.error))")
             }
         }
     }

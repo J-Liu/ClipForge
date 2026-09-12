@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "ClipForge",
     platforms: [
-        .macOS(.v12)
+        .macOS(.v13)
     ],
     targets: [
         .executableTarget(

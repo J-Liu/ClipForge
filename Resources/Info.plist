@@ -18,11 +18,14 @@
     <key>CFBundleExecutable</key>
     <string>ClipForge</string>
     <key>LSMinimumSystemVersion</key>
-    <string>12.0</string>
+    <string>13.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>ClipForge needs screen recording permission to capture your screen.</string>
+
+
 </dict>
 </plist>
-

@@ -50,6 +50,29 @@ class MainViewController: NSViewController {
     private var videoNaturalSize: CGSize = .zero
     private var cropRect: NSRect?   // in video pixel coordinates, nil = no crop
 
+    private let recorder = RecorderController()
+    private let recordButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "record.circle",
+                                        accessibilityDescription: "Record")!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+    private let stopRecordButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "stop.circle",
+                                        accessibilityDescription: "Stop")!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        b.isEnabled = false
+        return b
+    }()
+    private let separator: NSBox = {
+        let box = NSBox()
+        box.boxType = .separator
+        box.translatesAutoresizingMaskIntoConstraints = false
+        return box
+    }()
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -72,6 +95,8 @@ class MainViewController: NSViewController {
         setButton.translatesAutoresizingMaskIntoConstraints = false
         exportButton.translatesAutoresizingMaskIntoConstraints = false
         cropOverlay.translatesAutoresizingMaskIntoConstraints = false
+        recordButton.translatesAutoresizingMaskIntoConstraints = false
+        stopRecordButton.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -96,6 +121,11 @@ class MainViewController: NSViewController {
         exportButton.target = self
         exportButton.action = #selector(exportVideo)
 
+        recordButton.target = self
+        recordButton.action = #selector(startRecording)
+        stopRecordButton.target = self
+        stopRecordButton.action = #selector(stopRecording)
+
         view.addSubview(playerView)
         view.addSubview(openButton)
         view.addSubview(playButton)
@@ -107,6 +137,9 @@ class MainViewController: NSViewController {
         view.addSubview(setButton)
         view.addSubview(exportButton)
         view.addSubview(cropOverlay)
+        view.addSubview(recordButton)
+        view.addSubview(stopRecordButton)
+        view.addSubview(separator)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -191,9 +224,22 @@ class MainViewController: NSViewController {
             timeInputView.leadingAnchor.constraint(equalTo: setButton.trailingAnchor, constant: 12),
             timeInputView.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
 
-            // Place it on row 2, right side.
-            exportButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            // Export button now sits after timeInputView, on the left group.
+            exportButton.leadingAnchor.constraint(equalTo: timeInputView.trailingAnchor, constant: 12),
             exportButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            // Separator — pushed to the right by a flexible spacer.
+            separator.leadingAnchor.constraint(greaterThanOrEqualTo: exportButton.trailingAnchor, constant: 12),
+            separator.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -12),
+            separator.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 20),
+            separator.widthAnchor.constraint(equalToConstant: 1),
+
+            recordButton.trailingAnchor.constraint(equalTo: stopRecordButton.leadingAnchor, constant: -8),
+            recordButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            stopRecordButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            stopRecordButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
         ])
     }
 
@@ -455,5 +501,32 @@ class MainViewController: NSViewController {
         let evenH = floor(cropH / 2) * 2
 
         cropRect = NSRect(x: cropX, y: cropY, width: evenW, height: evenH)
+    }
+
+    @objc private func startRecording() {
+        recorder.startRecording { [weak self] error in
+            guard let self else { return }
+            if let error = error {
+                self.showAlert(title: "Recording Failed", message: error.localizedDescription)
+            } else {
+                self.recordButton.isEnabled = false
+                self.stopRecordButton.isEnabled = true
+            }
+        }
+    }
+
+    @objc private func stopRecording() {
+        recorder.stopRecording { [weak self] url in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.recordButton.isEnabled = true
+                self.stopRecordButton.isEnabled = false
+                if let url = url {
+                    self.showAlert(title: "Recording Saved", message: url.path)
+                } else {
+                    self.showAlert(title: "Recording Failed", message: "No file was written.")
+                }
+            }
+        }
     }
 }

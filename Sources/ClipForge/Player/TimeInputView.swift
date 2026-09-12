@@ -12,7 +12,13 @@ class TimeInputView: NSView {
     private let colon2 = NSTextField(labelWithString: ":")
     private let dot = NSTextField(labelWithString: ".")
 
-    private let goButton = NSButton(title: "Go", target: nil, action: nil)
+    private let goButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "scope",
+                                        accessibilityDescription: "Go to time")!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
 
     /// Called when the user commits a time value.
     var onSeek: ((CMTime) -> Void)?
@@ -101,4 +107,3 @@ class TimeInputView: NSView {
         onSeek?(time)
     }
 }
-

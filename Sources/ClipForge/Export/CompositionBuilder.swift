@@ -1,7 +1,7 @@
 import AVFoundation
 import CoreMedia
 
-/// Builds an AVComposition from kept segments and exports it to a new file.
+/// Builds an AVComposition from kept segments across multiple video sources.
 class CompositionBuilder {
 
     enum BuildError: Error {
@@ -13,14 +13,14 @@ class CompositionBuilder {
 
     /// Export kept segments to the given output URL.
     /// - Parameters:
-    ///   - sourceURL: original video file
-    ///   - segments: all segments, with isKept marking which to include
+    ///   - clips: all loaded video clips (with their URLs and timeline positions)
+    ///   - segments: all segments on the global timeline, with isKept marking which to include
     ///   - cropRect: optional crop rectangle in video pixel coordinates
     ///   - outputURL: destination file URL
     ///   - progress: called on main thread with 0.0...1.0
     ///   - completion: called on main thread with success or error
     static func export(
-        sourceURL: URL,
+        clips: [VideoClip],
         segments: [Segment],
         cropRect: NSRect?,
         outputURL: URL,
@@ -35,49 +35,84 @@ class CompositionBuilder {
             return
         }
 
-        let asset = AVURLAsset(url: sourceURL)
+        let timeline = TimelineModel()
+        // Populate timeline with the clips (no async needed; we already have durations).
+        timeline.setClipsSync(clips)
+
         let composition = AVMutableComposition()
 
         Task {
             do {
-                let videoTracks = try await asset.loadTracks(withMediaType: .video)
-                let audioTracks = try await asset.loadTracks(withMediaType: .audio)
-                guard let sourceVideoTrack = videoTracks.first else {
-                    throw BuildError.trackLoadFailed
-                }
-
+                // Create one composition track for video and one for audio.
                 let compositionVideoTrack = composition.addMutableTrack(
                     withMediaType: .video,
                     preferredTrackID: kCMPersistentTrackID_Invalid
                 )
-                let compositionAudioTrack = audioTracks.first != nil
-                    ? composition.addMutableTrack(
-                        withMediaType: .audio,
-                        preferredTrackID: kCMPersistentTrackID_Invalid)
-                    : nil
+                let compositionAudioTrack = composition.addMutableTrack(
+                    withMediaType: .audio,
+                    preferredTrackID: kCMPersistentTrackID_Invalid
+                )
+
+                // Cache source tracks per URL to avoid re-loading.
+                var videoTrackCache: [URL: AVAssetTrack] = [:]
+                var audioTrackCache: [URL: AVAssetTrack] = [:]
+                var transformCache: [URL: CGAffineTransform] = [:]
 
                 var cursor = CMTime.zero
+
                 for segment in kept {
-                    try compositionVideoTrack?.insertTimeRange(
-                        segment.range,
-                        of: sourceVideoTrack,
-                        at: cursor
-                    )
-                    if let sourceAudioTrack = audioTracks.first,
-                       let compositionAudioTrack = compositionAudioTrack {
-                        try compositionAudioTrack.insertTimeRange(
-                            segment.range,
-                            of: sourceAudioTrack,
+                    let pieces = timeline.localRanges(for: segment.range)
+                    for piece in pieces {
+                        let url = piece.clip.url
+                        let asset = AVURLAsset(url: url)
+
+                        // Load and cache tracks.
+                        let videoTrack: AVAssetTrack
+                        if let cached = videoTrackCache[url] {
+                            videoTrack = cached
+                        } else {
+                            guard let t = try await asset.loadTracks(withMediaType: .video).first else {
+                                throw BuildError.trackLoadFailed
+                            }
+                            videoTrackCache[url] = t
+                            videoTrack = t
+                        }
+
+                        let audioTrack: AVAssetTrack?
+                        if let cached = audioTrackCache[url] {
+                            audioTrack = cached
+                        } else {
+                            audioTrack = try await asset.loadTracks(withMediaType: .audio).first
+                            if let t = audioTrack { audioTrackCache[url] = t }
+                        }
+
+                        let transform: CGAffineTransform
+                        if let cached = transformCache[url] {
+                            transform = cached
+                        } else {
+                            transform = try await videoTrack.load(.preferredTransform)
+                            transformCache[url] = transform
+                        }
+
+                        try compositionVideoTrack?.insertTimeRange(
+                            piece.range,
+                            of: videoTrack,
                             at: cursor
                         )
+                        if let audioTrack = audioTrack {
+                            try compositionAudioTrack?.insertTimeRange(
+                                piece.range,
+                                of: audioTrack,
+                                at: cursor
+                            )
+                        }
+                        cursor = CMTimeAdd(cursor, piece.range.duration)
                     }
-                    cursor = CMTimeAdd(cursor, segment.range.duration)
                 }
 
-                // Preserve the source's preferred transform (rotation).
-                if let compositionVideoTrack = compositionVideoTrack {
-                    let transform = try await sourceVideoTrack.load(.preferredTransform)
-                    compositionVideoTrack.preferredTransform = transform
+                // Apply the first clip's preferred transform.
+                if let firstURL = clips.first?.url, let transform = transformCache[firstURL] {
+                    compositionVideoTrack?.preferredTransform = transform
                 }
 
                 // Build the video composition for cropping, if needed.

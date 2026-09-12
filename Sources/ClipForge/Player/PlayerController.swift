@@ -21,6 +21,17 @@ class PlayerController {
     /// Called when the current item changes (e.g. moving to the next video).
     var onCurrentItemChanged: ((Int) -> Void)?
 
+    var clips: [VideoClip] {
+        var result: [VideoClip] = []
+        var cursor = CMTime.zero
+        for (i, url) in urls.enumerated() {
+            let d = i < durations.count ? durations[i] : .zero
+            result.append(VideoClip(url: url, duration: d, startOnTimeline: cursor))
+            cursor = CMTimeAdd(cursor, d)
+        }
+        return result
+    }
+
     deinit {
         removeObservers()
     }

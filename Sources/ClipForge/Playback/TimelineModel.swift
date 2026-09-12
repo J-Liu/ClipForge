@@ -25,6 +25,11 @@ class TimelineModel {
         clips = newClips
     }
 
+    /// Set the clips directly (durations already known).
+    func setClipsSync(_ clips: [VideoClip]) {
+        self.clips = clips
+    }
+
     /// Append more videos to the end of the timeline.
     func appendClips(_ urls: [URL]) async throws {
         var cursor = totalDuration
@@ -78,4 +83,3 @@ class TimelineModel {
         return result
     }
 }
-

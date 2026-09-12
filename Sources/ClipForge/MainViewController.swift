@@ -527,7 +527,7 @@ class MainViewController: NSViewController {
     }
 
     @objc private func exportVideo() {
-        guard let sourceURL = playerController.urls.first else { return }
+        guard !playerController.urls.isEmpty else { return }
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.mpeg4Movie]
@@ -539,11 +539,11 @@ class MainViewController: NSViewController {
 
         panel.begin { [weak self] response in
             guard response == .OK, let outputURL = panel.url else { return }
-            self?.performExport(sourceURL: sourceURL, outputURL: outputURL)
+            self?.performExport(outputURL: outputURL)
         }
     }
 
-    private func performExport(sourceURL: URL, outputURL: URL) {
+    private func performExport(outputURL: URL) {
         // Pause playback during export.
         playerController.pause()
 
@@ -552,7 +552,7 @@ class MainViewController: NSViewController {
         view.window?.title = "Exporting… 0%"
 
         CompositionBuilder.export(
-            sourceURL: sourceURL,
+            clips: playerController.clips,
             segments: segments,
             cropRect: cropRect,
             outputURL: outputURL,

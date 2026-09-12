@@ -60,4 +60,8 @@ class AppActions {
             delegate.showMainWindow()
         }
     }
+
+    @objc func toggleMute() { mainViewController?.toggleMuteAction() }
+    @objc func increaseVolume() { mainViewController?.adjustVolume(by: 0.1) }
+    @objc func decreaseVolume() { mainViewController?.adjustVolume(by: -0.1) }
 }

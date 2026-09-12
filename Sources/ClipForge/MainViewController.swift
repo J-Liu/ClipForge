@@ -75,6 +75,15 @@ class MainViewController: NSViewController {
     private let windowPicker = WindowPickerOverlay()
     private let regionPicker = RegionPickerOverlay()
 
+    private let volumeSlider = NSSlider(value: 0.5, minValue: 0, maxValue: 1, target: nil, action: nil)
+    private let muteButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "speaker.wave.2.fill",
+                                        accessibilityDescription: "Mute")!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -83,6 +92,8 @@ class MainViewController: NSViewController {
         super.viewDidLoad()
         setupUI()
         updateRecordButtonIcon()
+        applyVolume()
+        updateMuteButtonIcon()
 
         statusBar.show()
         statusBar.onCancel = { [weak self] in
@@ -112,6 +123,8 @@ class MainViewController: NSViewController {
         cropOverlay.translatesAutoresizingMaskIntoConstraints = false
         recordButton.translatesAutoresizingMaskIntoConstraints = false
         dontHideCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        volumeSlider.translatesAutoresizingMaskIntoConstraints = false
+        muteButton.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -154,6 +167,14 @@ class MainViewController: NSViewController {
         // menuButton.bezelStyle = .rounded
         menuButton.translatesAutoresizingMaskIntoConstraints = false
 
+        volumeSlider.target = self
+        volumeSlider.action = #selector(volumeChanged)
+        volumeSlider.isContinuous = true
+        volumeSlider.doubleValue = Double(Settings.shared.volume)
+
+        muteButton.target = self
+        muteButton.action = #selector(toggleMute)
+
         view.addSubview(playerView)
         view.addSubview(openButton)
         view.addSubview(playButton)
@@ -169,6 +190,8 @@ class MainViewController: NSViewController {
         view.addSubview(menuButton)
         view.addSubview(separator)
         view.addSubview(dontHideCheckbox)
+        view.addSubview(volumeSlider)
+        view.addSubview(muteButton)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -272,6 +295,13 @@ class MainViewController: NSViewController {
 
             dontHideCheckbox.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -8),
             dontHideCheckbox.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            volumeSlider.trailingAnchor.constraint(equalTo: muteButton.leadingAnchor, constant: -8),
+            volumeSlider.centerYAnchor.constraint(equalTo: openButton.centerYAnchor),
+            volumeSlider.widthAnchor.constraint(equalToConstant: 50),
+
+            muteButton.trailingAnchor.constraint(equalTo: durationLabel.leadingAnchor, constant: -12),
+            muteButton.centerYAnchor.constraint(equalTo: openButton.centerYAnchor),
         ])
     }
 
@@ -816,5 +846,55 @@ class MainViewController: NSViewController {
 
     @objc private func dontHideChanged() {
         Settings.shared.dontHideWindow = (dontHideCheckbox.state == .on)
+    }
+
+    @objc private func volumeChanged() {
+        let v = Float(volumeSlider.doubleValue)
+        Settings.shared.volume = v
+        if v <= 0 {
+            Settings.shared.isMuted = true
+        } else if Settings.shared.isMuted {
+            Settings.shared.isMuted = false
+        }
+        applyVolume()
+        updateMuteButtonIcon()
+    }
+
+    @objc private func toggleMute() {
+        Settings.shared.isMuted.toggle()
+        applyVolume()
+        updateMuteButtonIcon()
+        updateVolumeSlider()
+    }
+
+    private func applyVolume() {
+        let effective = Settings.shared.isMuted ? 0 : Settings.shared.volume
+        playerController.player.volume = effective
+    }
+
+    private func updateMuteButtonIcon() {
+        let name = Settings.shared.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill"
+        muteButton.image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+    }
+
+    func toggleMuteAction() { toggleMute() }
+
+    func adjustVolume(by delta: Float) {
+        let base = Settings.shared.isMuted ? 0 : Settings.shared.volume
+        let v = max(0, min(1, base + delta))
+        Settings.shared.volume = v
+        if v <= 0 {
+            Settings.shared.isMuted = true
+        } else if Settings.shared.isMuted {
+            Settings.shared.isMuted = false
+        }
+        applyVolume()
+        updateMuteButtonIcon()
+        updateVolumeSlider()
+    }
+
+    private func updateVolumeSlider() {
+        let effective = Settings.shared.isMuted ? 0 : Settings.shared.volume
+        volumeSlider.doubleValue = Double(effective)
     }
 }

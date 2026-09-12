@@ -152,6 +152,29 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
+        let mute = NSMenuItem(title: "Mute",
+                              action: #selector(AppActions.toggleMute),
+                              keyEquivalent: "m")
+        mute.keyEquivalentModifierMask = [.command, .shift]
+        mute.target = AppActions.shared
+        menu.addItem(mute)
+
+        let volUp = NSMenuItem(title: "Volume Up",
+                               action: #selector(AppActions.increaseVolume),
+                               keyEquivalent: "\u{F700}")   // up arrow
+        volUp.keyEquivalentModifierMask = [.command]
+        volUp.target = AppActions.shared
+        menu.addItem(volUp)
+
+        let volDown = NSMenuItem(title: "Volume Down",
+                                 action: #selector(AppActions.decreaseVolume),
+                                 keyEquivalent: "\u{F701}")   // down arrow
+        volDown.keyEquivalentModifierMask = [.command]
+        volDown.target = AppActions.shared
+        menu.addItem(volDown)
+
+        menu.addItem(.separator())
+
         addPlaybackItem(to: menu, title: "Back 1 Frame",
                         action: #selector(AppActions.backOneFrame),
                         key: "\u{F702}")   // left arrow

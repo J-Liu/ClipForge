@@ -106,4 +106,17 @@ class Settings {
         }
         set { defaults.set(newValue, forKey: "autoPlayOnOpen") }
     }
+
+    var volume: Float {
+        get {
+            if defaults.object(forKey: "volume") == nil { return 0.5 }
+            return defaults.float(forKey: "volume")
+        }
+        set { defaults.set(newValue, forKey: "volume") }
+    }
+
+    var isMuted: Bool {
+        get { defaults.bool(forKey: "isMuted") }
+        set { defaults.set(newValue, forKey: "isMuted") }
+    }
 }

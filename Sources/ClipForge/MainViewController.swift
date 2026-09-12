@@ -57,16 +57,11 @@ class MainViewController: NSViewController {
                                         accessibilityDescription: "Record")!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
+        b.imagePosition = .imageLeading
         return b
     }()
-    private let stopRecordButton: NSButton = {
-        let b = NSButton(image: NSImage(systemSymbolName: "stop.circle",
-                                        accessibilityDescription: "Stop")!,
-                         target: nil, action: nil)
-        b.bezelStyle = .rounded
-        b.isEnabled = false
-        return b
-    }()
+
+    private let recordModeMenu = NSMenu()
     private let separator: NSBox = {
         let box = NSBox()
         box.boxType = .separator
@@ -80,10 +75,6 @@ class MainViewController: NSViewController {
     private let windowPicker = WindowPickerOverlay()
     private let regionPicker = RegionPickerOverlay()
 
-    // For test====================
-    private let audioRecorderTestButton = NSButton(title: "Mic Test", target: nil, action: nil)
-    // For test====================
-
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -91,6 +82,7 @@ class MainViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        updateRecordButtonIcon()
 
         statusBar.show()
         statusBar.onCancel = { [weak self] in
@@ -119,15 +111,7 @@ class MainViewController: NSViewController {
         exportButton.translatesAutoresizingMaskIntoConstraints = false
         cropOverlay.translatesAutoresizingMaskIntoConstraints = false
         recordButton.translatesAutoresizingMaskIntoConstraints = false
-        stopRecordButton.translatesAutoresizingMaskIntoConstraints = false
         dontHideCheckbox.translatesAutoresizingMaskIntoConstraints = false
-
-        // For mic test====================
-        audioRecorderTestButton.translatesAutoresizingMaskIntoConstraints = false
-        audioRecorderTestButton.target = self
-        audioRecorderTestButton.action = #selector(startRegionRecording)
-        view.addSubview(audioRecorderTestButton)
-        // For mic test====================
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -153,9 +137,18 @@ class MainViewController: NSViewController {
         exportButton.action = #selector(exportVideo)
 
         recordButton.target = self
-        recordButton.action = #selector(startRecording)
-        stopRecordButton.target = self
-        stopRecordButton.action = #selector(stopRecording)
+        recordButton.action = #selector(recordButtonPressed)
+        recordButton.sendAction(on: [.leftMouseUp, .rightMouseUp])
+
+        // Long-press or right-click shows the mode menu.
+        // For simplicity, we use a separate small button for the dropdown.
+        let menuButton = NSButton(image: NSImage(systemSymbolName: "chevron.down",
+                                                  accessibilityDescription: "Mode")!,
+                                  target: self,
+                                  action: #selector(showRecordModeMenu))
+        menuButton.isBordered = false
+        // menuButton.bezelStyle = .rounded
+        menuButton.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(playerView)
         view.addSubview(openButton)
@@ -169,7 +162,7 @@ class MainViewController: NSViewController {
         view.addSubview(exportButton)
         view.addSubview(cropOverlay)
         view.addSubview(recordButton)
-        view.addSubview(stopRecordButton)
+        view.addSubview(menuButton)
         view.addSubview(separator)
         view.addSubview(dontHideCheckbox)
 
@@ -267,19 +260,14 @@ class MainViewController: NSViewController {
             separator.heightAnchor.constraint(equalToConstant: 20),
             separator.widthAnchor.constraint(equalToConstant: 1),
 
-            recordButton.trailingAnchor.constraint(equalTo: stopRecordButton.leadingAnchor, constant: -8),
+            recordButton.trailingAnchor.constraint(equalTo: menuButton.leadingAnchor, constant: -4),
             recordButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
 
-            stopRecordButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            stopRecordButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+            menuButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            menuButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
 
             dontHideCheckbox.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -8),
             dontHideCheckbox.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
-
-            // For mic test====================
-            audioRecorderTestButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            audioRecorderTestButton.topAnchor.constraint(equalTo: setButton.bottomAnchor, constant: 8),
-            // For mic test====================
         ])
     }
 
@@ -514,8 +502,6 @@ class MainViewController: NSViewController {
         updateOverlayContentRect()
     }
 
-    private var hasInitializedSelection = false
-
     private func updateOverlayContentRect() {
         guard videoNaturalSize.width > 0 else { return }
         let displayRect = playerView.videoDisplayRect(for: videoNaturalSize)
@@ -546,7 +532,6 @@ class MainViewController: NSViewController {
     @objc private func startRecording() {
         // Disable UI during countdown.
         recordButton.isEnabled = false
-        stopRecordButton.isEnabled = false
 
         statusBar.startCountdown(onTick: { _ in
             // The status bar handles its own display.
@@ -562,11 +547,9 @@ class MainViewController: NSViewController {
                 self.showAlert(title: "Recording Failed", message: error.localizedDescription)
                 self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
-                self.stopRecordButton.isEnabled = false
                 return
             }
             self.statusBar.setState(.recording)
-            self.stopRecordButton.isEnabled = true
             if self.dontHideCheckbox.state == .off {
                 self.view.window?.orderOut(nil)
             }
@@ -576,7 +559,6 @@ class MainViewController: NSViewController {
     private func cancelRecordingCountdown() {
         statusBar.setState(.idle)
         recordButton.isEnabled = true
-        stopRecordButton.isEnabled = false
     }
 
     private func togglePauseRecording() {
@@ -600,7 +582,6 @@ class MainViewController: NSViewController {
                 guard let self else { return }
                 self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
-                self.stopRecordButton.isEnabled = false
                 self.view.window?.makeKeyAndOrderFront(nil)
                 if let url = url {
                     self.showAlert(title: "Recording Saved", message: url.path)
@@ -643,7 +624,6 @@ class MainViewController: NSViewController {
 
     private func beginWindowRecordingAfterCountdown(window: SCWindow) {
         recordButton.isEnabled = false
-        stopRecordButton.isEnabled = false
         statusBar.startCountdown(onTick: { _ in }, onFinish: { [weak self] in
             self?.beginWindowRecording(window: window)
         })
@@ -659,7 +639,6 @@ class MainViewController: NSViewController {
                 return
             }
             self.statusBar.setState(.recording)
-            self.stopRecordButton.isEnabled = true
             if self.dontHideCheckbox.state == .off {
                 self.view.window?.orderOut(nil)
             }
@@ -676,7 +655,6 @@ class MainViewController: NSViewController {
 
     private func beginRegionRecordingAfterCountdown(region: NSRect) {
         recordButton.isEnabled = false
-        stopRecordButton.isEnabled = false
         statusBar.startCountdown(onTick: { _ in }, onFinish: { [weak self] in
             self?.beginRegionRecording(region: region)
         })
@@ -692,10 +670,67 @@ class MainViewController: NSViewController {
                 return
             }
             self.statusBar.setState(.recording)
-            self.stopRecordButton.isEnabled = true
             if self.dontHideCheckbox.state == .off {
                 self.view.window?.orderOut(nil)
             }
+        }
+    }
+
+    private func rebuildRecordModeMenu() {
+        recordModeMenu.removeAllItems()
+
+        let modes: [(RecordingMode, String, String)] = [
+            (.fullScreen, "Full Screen", "rectangle.inset.filled"),
+            (.window, "Window", "macwindow"),
+            (.region, "Region", "rectangle.dashed")
+        ]
+
+        for (mode, title, iconName) in modes {
+            let item = NSMenuItem(title: title,
+                                  action: #selector(selectRecordingMode(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            item.image = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)
+            if Settings.shared.recordingMode == mode {
+                item.state = .on
+            }
+            recordModeMenu.addItem(item)
+        }
+    }
+
+    @objc private func selectRecordingMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let mode = RecordingMode(rawValue: raw) else { return }
+        Settings.shared.recordingMode = mode
+        updateRecordButtonIcon()
+        rebuildRecordModeMenu()
+    }
+
+    private func updateRecordButtonIcon() {
+        let name: String
+        switch Settings.shared.recordingMode {
+        case .fullScreen: name = "rectangle.inset.filled"
+        case .window:     name = "macwindow"
+        case .region:     name = "rectangle.dashed"
+        }
+        recordButton.image = NSImage(systemSymbolName: name, accessibilityDescription: "Record")
+    }
+
+    @objc private func showRecordModeMenu() {
+        rebuildRecordModeMenu()
+        let point = NSPoint(x: 0, y: recordButton.bounds.height)
+        recordModeMenu.popUp(positioning: nil, at: point, in: recordButton)
+    }
+
+    @objc private func recordButtonPressed() {
+        switch Settings.shared.recordingMode {
+        case .fullScreen:
+            startRecording()
+        case .window:
+            startWindowRecording()
+        case .region:
+            startRegionRecording()
         }
     }
 }

@@ -31,7 +31,7 @@ class AppActions {
     @objc func forwardFiveSeconds() { mainViewController?.seek(bySeconds: 5) }
 
     @objc func openSettings() {
-        // TODO: settings window (next step)
+        SettingsWindowController.shared.present()
     }
 
     @objc func bringMainWindowFront() {

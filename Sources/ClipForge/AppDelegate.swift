@@ -4,6 +4,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: MainWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        MenuBuilder.build()
         showMainWindow()
 
         NotificationCenter.default.addObserver(
@@ -12,6 +13,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             self?.windowController = nil
+        }
+
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Space key = keyCode 49.
+            guard event.keyCode == 49 else { return event }
+            // Let text fields handle it.
+            if let responder = NSApp.keyWindow?.firstResponder,
+               responder is NSTextView {
+                return event
+            }
+            AppActions.shared.togglePlay()
+            return nil   // consume the event
         }
     }
 
@@ -24,7 +37,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    private func showMainWindow() {
+    func showMainWindow() {
         if windowController == nil {
             let wc = MainWindowController()
             windowController = wc

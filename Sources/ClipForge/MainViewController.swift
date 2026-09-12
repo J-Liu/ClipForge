@@ -316,6 +316,17 @@ class MainViewController: NSViewController {
 
     // MARK: - Actions
 
+    func openFileAction() { openFile() }
+    func exportVideoAction() { exportVideo() }
+    func togglePlayAction() { togglePlay() }
+    func recordButtonPressedAction() { recordButtonPressed() }
+
+    func setRecordingMode(_ mode: RecordingMode) {
+        Settings.shared.recordingMode = mode
+        updateRecordButtonIcon()
+        rebuildRecordModeMenu()
+    }
+
     @objc private func openFile() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.movie, .video, .mpeg4Movie, .quickTimeMovie]
@@ -699,14 +710,6 @@ class MainViewController: NSViewController {
         }
     }
 
-    @objc private func selectRecordingMode(_ sender: NSMenuItem) {
-        guard let raw = sender.representedObject as? String,
-              let mode = RecordingMode(rawValue: raw) else { return }
-        Settings.shared.recordingMode = mode
-        updateRecordButtonIcon()
-        rebuildRecordModeMenu()
-    }
-
     private func updateRecordButtonIcon() {
         let name: String
         switch Settings.shared.recordingMode {
@@ -732,5 +735,11 @@ class MainViewController: NSViewController {
         case .region:
             startRegionRecording()
         }
+    }
+
+    @objc private func selectRecordingMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let mode = RecordingMode(rawValue: raw) else { return }
+        setRecordingMode(mode)
     }
 }

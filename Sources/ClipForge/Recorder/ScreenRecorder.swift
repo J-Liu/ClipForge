@@ -65,6 +65,12 @@ class ScreenRecorder {
 
         if !isSessionStarted {
             if type == .screen {
+                if let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
+                    let dims = CMVideoFormatDescriptionGetDimensions(format)
+                    let configW = videoInput?.outputSettings?[AVVideoWidthKey] ?? "?"
+                    let configH = videoInput?.outputSettings?[AVVideoHeightKey] ?? "?"
+                    print("actual: \(dims.width)x\(dims.height), config: \(configW)x\(configH)")
+                }
                 writer.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
                 isSessionStarted = true
             } else {
@@ -89,12 +95,22 @@ class ScreenRecorder {
     }
 
     func finish(completion: @escaping (URL?) -> Void) {
-        guard let writer = assetWriter else { completion(nil); return }
-        guard writer.status == .writing else { completion(nil); return }
+        guard let writer = assetWriter else {
+            print("finish: no writer")
+            completion(nil)
+            return
+        }
+        print("finish: status before = \(writer.status.rawValue), error = \(String(describing: writer.error))")
+        guard writer.status == .writing else {
+            print("finish: not writing, bailing")
+            completion(nil)
+            return
+        }
         videoInput?.markAsFinished()
         audioInput?.markAsFinished()
         micInput?.markAsFinished()
         writer.finishWriting {
+            print("finish: status after = \(writer.status.rawValue), error = \(String(describing: writer.error))")
             DispatchQueue.main.async {
                 completion(writer.status == .completed ? self.outputURL : nil)
             }

@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import ScreenCaptureKit
 
 class MainViewController: NSViewController {
     private let playerController = PlayerController()
@@ -76,10 +77,10 @@ class MainViewController: NSViewController {
     private let statusBar = StatusBarController()
     private let dontHideCheckbox = NSButton(checkboxWithTitle: "Don't hide", target: nil, action: nil)
 
+    private let windowPicker = WindowPickerOverlay()
+
     // For mic test====================
     private let audioRecorderTestButton = NSButton(title: "Mic Test", target: nil, action: nil)
-    private let audioRecorderStopButton = NSButton(title: "Mic Stop", target: nil, action: nil)
-    private var audioRecorder: AudioRecorder?
     // For mic test====================
 
     override func loadView() {
@@ -122,14 +123,9 @@ class MainViewController: NSViewController {
 
         // For mic test====================
         audioRecorderTestButton.translatesAutoresizingMaskIntoConstraints = false
-        audioRecorderStopButton.translatesAutoresizingMaskIntoConstraints = false
         audioRecorderTestButton.target = self
-        audioRecorderTestButton.action = #selector(startMicTest)
-        audioRecorderStopButton.target = self
-        audioRecorderStopButton.action = #selector(stopMicTest)
-        audioRecorderStopButton.isEnabled = false
+        audioRecorderTestButton.action = #selector(startWindowRecording)
         view.addSubview(audioRecorderTestButton)
-        view.addSubview(audioRecorderStopButton)
         // For mic test====================
 
         setButton.target = self
@@ -282,9 +278,6 @@ class MainViewController: NSViewController {
             // For mic test====================
             audioRecorderTestButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             audioRecorderTestButton.topAnchor.constraint(equalTo: setButton.bottomAnchor, constant: 8),
-
-            audioRecorderStopButton.leadingAnchor.constraint(equalTo: audioRecorderTestButton.trailingAnchor, constant: 8),
-            audioRecorderStopButton.centerYAnchor.constraint(equalTo: audioRecorderTestButton.centerYAnchor),
             // For mic test====================
         ])
     }
@@ -617,29 +610,57 @@ class MainViewController: NSViewController {
         }
     }
 
-    @objc private func startMicTest() {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ClipForge-mic-test.m4a")
-        let recorder = AudioRecorder(outputURL: url)
-        do {
-            try recorder.start()
-            audioRecorder = recorder
-            audioRecorderTestButton.isEnabled = false
-            audioRecorderStopButton.isEnabled = true
-        } catch {
-            showAlert(title: "Mic Failed", message: error.localizedDescription)
+    @objc private func startWindowRecording() {
+        Task {
+            guard let content = try? await SCShareableContent.excludingDesktopWindows(
+                false, onScreenWindowsOnly: true
+            ) else { return }
+
+            // Filter out our own windows and tiny windows.
+            let myBundleID = Bundle.main.bundleIdentifier
+            let candidates = content.windows.filter {
+                $0.isOnScreen &&
+                $0.frame.width > 100 &&
+                $0.frame.height > 100 &&
+                $0.owningApplication?.bundleIdentifier != myBundleID &&
+                $0.owningApplication?.bundleIdentifier != "com.apple.dock" &&
+                $0.owningApplication?.bundleIdentifier != "com.apple.finder" &&
+                $0.windowLayer == 0   // normal app windows only
+            }
+
+            await MainActor.run {
+                self.windowPicker.onPick = { [weak self] window in
+                    self?.beginWindowRecordingAfterCountdown(window: window)
+                }
+                self.windowPicker.onCancel = {
+                    // Nothing to do; overlay already dismissed.
+                }
+                self.windowPicker.present(targetWindows: candidates)
+            }
         }
     }
 
-    @objc private func stopMicTest() {
-        audioRecorder?.stop { url in
-            self.audioRecorder = nil
-            self.audioRecorderTestButton.isEnabled = true
-            self.audioRecorderStopButton.isEnabled = false
-            if let url = url {
-                self.showAlert(title: "Mic Saved", message: url.path)
-            } else {
-                self.showAlert(title: "Mic Failed", message: "No file was written.")
+    private func beginWindowRecordingAfterCountdown(window: SCWindow) {
+        recordButton.isEnabled = false
+        stopRecordButton.isEnabled = false
+        statusBar.startCountdown(onTick: { _ in }, onFinish: { [weak self] in
+            self?.beginWindowRecording(window: window)
+        })
+    }
+
+    private func beginWindowRecording(window: SCWindow) {
+        recorder.startWindowRecording(window: window) { [weak self] error in
+            guard let self else { return }
+            if let error = error {
+                self.showAlert(title: "Recording Failed", message: error.localizedDescription)
+                self.statusBar.setState(.idle)
+                self.recordButton.isEnabled = true
+                return
+            }
+            self.statusBar.setState(.recording)
+            self.stopRecordButton.isEnabled = true
+            if self.dontHideCheckbox.state == .off {
+                self.view.window?.orderOut(nil)
             }
         }
     }

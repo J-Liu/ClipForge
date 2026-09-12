@@ -34,8 +34,7 @@ class RecorderController: NSObject {
                 config.height = display.height
                 config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
                 config.queueDepth = 6
-                // config.capturesAudio = true
-                config.capturesAudio = false
+                config.capturesAudio = true
                 config.excludesCurrentProcessAudio = true
                 config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
 

@@ -87,6 +87,13 @@ class MenuBuilder {
         open.target = AppActions.shared
         menu.addItem(open)
 
+        let append = NSMenuItem(title: "Append Video…",
+                                action: #selector(AppActions.appendVideo),
+                                keyEquivalent: "o")
+        append.keyEquivalentModifierMask = [.command, .shift]
+        append.target = AppActions.shared
+        menu.addItem(append)
+
         let export = NSMenuItem(title: "Export…",
                                 action: #selector(AppActions.exportVideo),
                                 keyEquivalent: "e")

@@ -17,6 +17,7 @@ class AppActions {
     }
 
     @objc func openFile() { mainViewController?.openFileAction() }
+    @objc func appendVideo() { mainViewController?.appendVideoAction() }
     @objc func exportVideo() { mainViewController?.exportVideoAction() }
     @objc func togglePlay() { mainViewController?.togglePlayAction() }
 

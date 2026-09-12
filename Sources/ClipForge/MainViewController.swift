@@ -334,20 +334,24 @@ class MainViewController: NSViewController {
     @objc private func openFile() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.movie, .video, .mpeg4Movie, .quickTimeMovie]
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
 
         panel.begin { [weak self] response in
-            guard response == .OK, let url = panel.url else { return }
-            self?.loadVideos(urls: [url])
+            guard response == .OK else { return }
+            let urls = panel.urls
+            guard !urls.isEmpty else { return }
+            self?.loadVideos(urls: urls)
         }
     }
 
-    private func loadVideos(urls: [URL]) {
+    private func loadVideos(urls: [URL], preserveEdits: Bool = false) {
         playerController.load(urls: urls)
         playerView.attach(player: playerController.player)
 
-        cutPoints = []
+        if !preserveEdits {
+            cutPoints = []
+        }
         rebuildSegments()
 
         // Update duration label after durations load.
@@ -379,6 +383,34 @@ class MainViewController: NSViewController {
             playerController.seek(to: .zero)
         }
         updatePlayButtonIcon()
+    }
+
+    func appendVideoAction() { appendVideo() }
+
+    @objc private func appendVideo() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.movie, .video, .mpeg4Movie, .quickTimeMovie]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+
+        panel.begin { [weak self] response in
+            guard response == .OK, let self else { return }
+            let urls = panel.urls
+            guard !urls.isEmpty else { return }
+            self.appendVideos(urls: urls)
+        }
+    }
+
+    private func appendVideos(urls: [URL]) {
+        guard let currentURLs = playerController.urls.isEmpty ? nil : playerController.urls else {
+            // No current video — treat as a fresh load.
+            loadVideos(urls: urls)
+            return
+        }
+        let combined = currentURLs + urls
+        // Preserve existing cutPoints and segments, but their times are on the old timeline.
+        // For now, reload the whole thing.
+        loadVideos(urls: combined)
     }
 
     @objc private func togglePlay() {

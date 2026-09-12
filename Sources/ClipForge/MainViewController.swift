@@ -78,10 +78,11 @@ class MainViewController: NSViewController {
     private let dontHideCheckbox = NSButton(checkboxWithTitle: "Don't hide", target: nil, action: nil)
 
     private let windowPicker = WindowPickerOverlay()
+    private let regionPicker = RegionPickerOverlay()
 
-    // For mic test====================
+    // For test====================
     private let audioRecorderTestButton = NSButton(title: "Mic Test", target: nil, action: nil)
-    // For mic test====================
+    // For test====================
 
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
@@ -124,7 +125,7 @@ class MainViewController: NSViewController {
         // For mic test====================
         audioRecorderTestButton.translatesAutoresizingMaskIntoConstraints = false
         audioRecorderTestButton.target = self
-        audioRecorderTestButton.action = #selector(startWindowRecording)
+        audioRecorderTestButton.action = #selector(startRegionRecording)
         view.addSubview(audioRecorderTestButton)
         // For mic test====================
 
@@ -650,6 +651,39 @@ class MainViewController: NSViewController {
 
     private func beginWindowRecording(window: SCWindow) {
         recorder.startWindowRecording(window: window) { [weak self] error in
+            guard let self else { return }
+            if let error = error {
+                self.showAlert(title: "Recording Failed", message: error.localizedDescription)
+                self.statusBar.setState(.idle)
+                self.recordButton.isEnabled = true
+                return
+            }
+            self.statusBar.setState(.recording)
+            self.stopRecordButton.isEnabled = true
+            if self.dontHideCheckbox.state == .off {
+                self.view.window?.orderOut(nil)
+            }
+        }
+    }
+
+    @objc private func startRegionRecording() {
+        regionPicker.onPick = { [weak self] screenRect in
+            self?.beginRegionRecordingAfterCountdown(region: screenRect)
+        }
+        regionPicker.onCancel = { }
+        regionPicker.present()
+    }
+
+    private func beginRegionRecordingAfterCountdown(region: NSRect) {
+        recordButton.isEnabled = false
+        stopRecordButton.isEnabled = false
+        statusBar.startCountdown(onTick: { _ in }, onFinish: { [weak self] in
+            self?.beginRegionRecording(region: region)
+        })
+    }
+
+    private func beginRegionRecording(region: NSRect) {
+        recorder.startRegionRecording(region: region) { [weak self] error in
             guard let self else { return }
             if let error = error {
                 self.showAlert(title: "Recording Failed", message: error.localizedDescription)

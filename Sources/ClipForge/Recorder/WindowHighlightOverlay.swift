@@ -6,6 +6,7 @@ class WindowHighlightOverlay {
     private var window: NSWindow?
     private var updateTimer: Timer?
     private var targetWindowID: CGWindowID?
+    var debugFrame: NSRect { window?.frame ?? .zero }
 
     /// The window being highlighted, in screen coordinates.
     private var targetFrame: NSRect = .zero
@@ -110,6 +111,17 @@ class WindowHighlightOverlay {
             )
         }
         return nil
+    }
+
+    /// Show a static highlight around a fixed screen rect. No tracking.
+    func showFixed(around screenRect: NSRect) {
+        targetFrame = screenRect
+        targetWindowID = nil
+        if window == nil {
+            createWindow()
+        }
+        updateFrame()
+        // Intentionally no startTracking() — the region doesn't move.
     }
 }
 

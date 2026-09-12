@@ -14,8 +14,7 @@ class ScreenRecorder {
         self.outputURL = outputURL
     }
 
-    /// Create the writer and audio input. Video input is created lazily
-    /// from the first screen sample buffer, using its actual dimensions.
+    /// Create the writer and all inputs.
     func start(width: Int, height: Int) throws {
         try? FileManager.default.removeItem(at: outputURL)
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
@@ -65,12 +64,6 @@ class ScreenRecorder {
 
         if !isSessionStarted {
             if type == .screen {
-                if let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
-                    let dims = CMVideoFormatDescriptionGetDimensions(format)
-                    let configW = videoInput?.outputSettings?[AVVideoWidthKey] ?? "?"
-                    let configH = videoInput?.outputSettings?[AVVideoHeightKey] ?? "?"
-                    print("actual: \(dims.width)x\(dims.height), config: \(configW)x\(configH)")
-                }
                 writer.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
                 isSessionStarted = true
             } else {
@@ -94,15 +87,18 @@ class ScreenRecorder {
         }
     }
 
-    func finish(completion: @escaping (URL?) -> Void) {
-        guard let writer = assetWriter else {
-            print("finish: no writer")
-            completion(nil)
-            return
+    func appendMicrophone(_ sampleBuffer: CMSampleBuffer) {
+        guard let writer = assetWriter, writer.status == .writing, isSessionStarted else { return }
+        if let input = micInput, input.isReadyForMoreMediaData {
+            let ok = input.append(sampleBuffer)
+            if !ok {
+                print("mic append failed: \(String(describing: writer.error))")
+            }
         }
-        print("finish: status before = \(writer.status.rawValue), error = \(String(describing: writer.error))")
-        guard writer.status == .writing else {
-            print("finish: not writing, bailing")
+    }
+
+    func finish(completion: @escaping (URL?) -> Void) {
+        guard let writer = assetWriter, writer.status == .writing else {
             completion(nil)
             return
         }
@@ -110,19 +106,8 @@ class ScreenRecorder {
         audioInput?.markAsFinished()
         micInput?.markAsFinished()
         writer.finishWriting {
-            print("finish: status after = \(writer.status.rawValue), error = \(String(describing: writer.error))")
             DispatchQueue.main.async {
                 completion(writer.status == .completed ? self.outputURL : nil)
-            }
-        }
-    }
-
-    func appendMicrophone(_ sampleBuffer: CMSampleBuffer) {
-        guard let writer = assetWriter, writer.status == .writing, isSessionStarted else { return }
-        if let input = micInput, input.isReadyForMoreMediaData {
-            let ok = input.append(sampleBuffer)
-            if !ok {
-                print("mic append failed: \(String(describing: writer.error))")
             }
         }
     }

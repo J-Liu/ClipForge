@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct EditingSettingsView: View {
-    @AppStorage("autoPlayOnOpen") private var autoPlayOnOpen = true
+    @AppStorage("autoPlayOnOpen") private var autoPlayOnOpen = false
     @AppStorage("playbackEndBehavior") private var playbackEndBehavior = "restart"
     @AppStorage("exportResolution") private var exportResolution = "original"
     @AppStorage("exportFrameRate") private var exportFrameRate = "original"
@@ -38,4 +38,3 @@ struct EditingSettingsView: View {
         .formStyle(.grouped)
     }
 }
-

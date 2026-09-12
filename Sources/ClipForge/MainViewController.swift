@@ -290,7 +290,7 @@ class MainViewController: NSViewController {
                         self.playerController.seek(to: nextKept.start)
                     } else {
                         // No kept segment after; jump to end.
-                        self.playerController.seek(to: self.playerController.duration)
+                        self.playerController.seek(to: self.playerController.totalDuration)
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self.isSkipping = false
@@ -312,7 +312,7 @@ class MainViewController: NSViewController {
     }
 
     private func updateSliderPosition(for time: CMTime) {
-        let duration = CMTimeGetSeconds(playerController.duration)
+        let duration = CMTimeGetSeconds(playerController.totalDuration)
         guard duration > 0 else { return }
         let current = CMTimeGetSeconds(time)
         slider.doubleValue = current / duration
@@ -339,26 +339,29 @@ class MainViewController: NSViewController {
 
         panel.begin { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
-            self?.loadVideo(url: url)
+            self?.loadVideos(urls: [url])
         }
     }
 
-    private func loadVideo(url: URL) {
-        playerController.load(url: url)
+    private func loadVideos(urls: [URL]) {
+        playerController.load(urls: urls)
         playerView.attach(player: playerController.player)
-        playerController.play()
 
         cutPoints = []
         rebuildSegments()
 
-        // Wait a tick for duration to load, then update the duration label.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self else { return }
-            self.durationLabel.stringValue = TimeFormatter.displayString(from: self.playerController.duration)
+        // Update duration label after durations load.
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            await MainActor.run {
+                self.durationLabel.stringValue = TimeFormatter.displayString(from: self.playerController.totalDuration)
+            }
         }
 
+        // Load natural size of the first video for the crop overlay.
+        guard let firstURL = urls.first else { return }
         Task {
-            let asset = AVURLAsset(url: url)
+            let asset = AVURLAsset(url: firstURL)
             if let track = try? await asset.loadTracks(withMediaType: .video).first {
                 let size = try? await track.load(.naturalSize)
                 await MainActor.run {
@@ -367,6 +370,15 @@ class MainViewController: NSViewController {
                 }
             }
         }
+
+        // Auto-play only if the user opted in.
+        if Settings.shared.autoPlayOnOpen {
+            playerController.play()
+        } else {
+            // Show the first frame without playing.
+            playerController.seek(to: .zero)
+        }
+        updatePlayButtonIcon()
     }
 
     @objc private func togglePlay() {
@@ -392,7 +404,7 @@ class MainViewController: NSViewController {
         }
 
         // Seek to the slider position.
-        let duration = CMTimeGetSeconds(playerController.duration)
+        let duration = CMTimeGetSeconds(playerController.totalDuration)
         guard duration > 0 else { return }
         let target = CMTime(seconds: slider.doubleValue * duration, preferredTimescale: 600)
         playerController.seek(to: target)
@@ -400,9 +412,9 @@ class MainViewController: NSViewController {
     }
 
     @objc private func addCutPoint() {
-        guard playerController.duration.isValid else { return }
+        guard playerController.totalDuration.isValid else { return }
         let current = playerController.player.currentTime()
-        let total = CMTimeGetSeconds(playerController.duration)
+        let total = CMTimeGetSeconds(playerController.totalDuration)
         let t = CMTimeGetSeconds(current)
         guard t > 0, t < total else { return }
 
@@ -415,7 +427,7 @@ class MainViewController: NSViewController {
     }
 
     private func rebuildSegments() {
-        let total = playerController.duration
+        let total = playerController.totalDuration
         guard total.isValid, CMTimeGetSeconds(total) > 0 else {
             segments = []
             segmentBar.segments = []
@@ -453,7 +465,7 @@ class MainViewController: NSViewController {
     }
 
     @objc private func exportVideo() {
-        guard let sourceURL = playerController.currentURL else { return }
+        guard let sourceURL = playerController.urls.first else { return }
 
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.mpeg4Movie]
@@ -754,13 +766,13 @@ class MainViewController: NSViewController {
 
     /// Step playback by N frames (positive = forward).
     func stepFrames(_ count: Int) {
-        guard playerController.duration.isValid else { return }
+        guard playerController.totalDuration.isValid else { return }
         let current = CMTimeGetSeconds(playerController.player.currentTime())
         // Assume 30 fps; refine when we expose frame rate in settings.
         let frameDuration = 1.0 / 30.0
         let target = max(0, min(
             current + Double(count) * frameDuration,
-            CMTimeGetSeconds(playerController.duration)
+            CMTimeGetSeconds(playerController.totalDuration)
         ))
         playerController.seek(to: CMTime(seconds: target, preferredTimescale: 600))
     }

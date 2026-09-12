@@ -98,4 +98,12 @@ class Settings {
         get { defaults.string(forKey: Key.videoCodec) ?? "h264" }
         set { defaults.set(newValue, forKey: Key.videoCodec) }
     }
+
+    var autoPlayOnOpen: Bool {
+        get {
+            if defaults.object(forKey: "autoPlayOnOpen") == nil { return false }
+            return defaults.bool(forKey: "autoPlayOnOpen")
+        }
+        set { defaults.set(newValue, forKey: "autoPlayOnOpen") }
+    }
 }

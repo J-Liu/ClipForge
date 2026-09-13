@@ -19,6 +19,14 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
+      - name: Install librsvg
+        run: brew install librsvg
+
+      - name: Generate icon
+        run: |
+          chmod +x make_icon.sh
+          ./make_icon.sh
+
       - name: Build app bundle
         run: |
           chmod +x build_app.sh
@@ -41,4 +49,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

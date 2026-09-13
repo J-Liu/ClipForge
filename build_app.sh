@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright © 2026 Jia Liu
+#
 set -e
 
 APP_NAME="ClipForge"
@@ -16,6 +19,9 @@ mkdir -p "${APP_BUNDLE}/Contents/Resources"
 cp "${BUILD_DIR}/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/"
 cp "Resources/Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
 
+if [ -f "build/ClipForge.icns" ]; then
+    cp "build/ClipForge.icns" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
+fi
+
 echo "==> Done: ${APP_BUNDLE}"
 echo "Run with: open ${APP_BUNDLE}"
-

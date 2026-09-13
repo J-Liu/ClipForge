@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright © 2026 Jia Liu
+
 import CoreMedia
 
 /// A segment between two cut points (or timeline boundaries).
@@ -15,4 +18,3 @@ struct Segment {
         return t >= s && t < e
     }
 }
-

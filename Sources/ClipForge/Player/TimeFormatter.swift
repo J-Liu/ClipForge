@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright © 2026 Jia Liu
+
 import Foundation
 import CoreMedia
 
@@ -15,4 +18,3 @@ enum TimeFormatter {
         return String(format: "%02d:%02d.%03d", minutes, seconds, millis)
     }
 }
-

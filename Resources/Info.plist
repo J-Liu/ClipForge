@@ -29,5 +29,7 @@
     <string>ClipForge needs microphone access to record audio.</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Jia Liu. All rights reserved.</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
 </dict>
 </plist>

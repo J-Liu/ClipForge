@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright © 2026 Jia Liu
+
 import AppKit
 
 extension MainViewController {
@@ -27,4 +30,3 @@ extension MainViewController {
         cropRect = NSRect(x: cropX, y: cropY, width: evenW, height: evenH)
     }
 }
-

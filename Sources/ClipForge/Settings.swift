@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright © 2026 Jia Liu
+
 import Foundation
 
 /// The mode the record button is currently set to.

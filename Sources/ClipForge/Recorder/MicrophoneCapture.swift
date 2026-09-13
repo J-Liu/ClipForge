@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright © 2026 Jia Liu
+
 import AVFoundation
 
 /// Captures audio from the default microphone and delivers sample buffers.

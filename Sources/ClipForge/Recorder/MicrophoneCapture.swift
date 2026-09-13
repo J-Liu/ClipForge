@@ -18,19 +18,19 @@ class MicrophoneCapture: NSObject  {
 
         guard let device = AVCaptureDevice.default(for: .audio) else {
             throw NSError(domain: "ClipForge", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "No microphone available"])
+                          userInfo: [NSLocalizedDescriptionKey: L("internalError.noMicrophone")])
         }
         let input = try AVCaptureDeviceInput(device: device)
         guard session.canAddInput(input) else {
             throw NSError(domain: "ClipForge", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Cannot add microphone input"])
+                          userInfo: [NSLocalizedDescriptionKey: L("internalError.cannotAddMicInput")])
         }
         session.addInput(input)
 
         output.setSampleBufferDelegate(self, queue: queue)
         guard session.canAddOutput(output) else {
             throw NSError(domain: "ClipForge", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Cannot add audio output"])
+                          userInfo: [NSLocalizedDescriptionKey: L("internalError.cannotAddAudioOutput")])
         }
         session.addOutput(output)
 

@@ -7,6 +7,17 @@ import AppKit
 class MenuBuilder {
 
     static func build() {
+        rebuild()
+        NotificationCenter.default.addObserver(
+            forName: .languageChanged,
+            object: nil,
+            queue: .main
+        ) { _ in
+            rebuild()
+        }
+    }
+
+    private static func rebuild() {
         let mainMenu = NSMenu()
 
         mainMenu.addItem(makeAppMenu())

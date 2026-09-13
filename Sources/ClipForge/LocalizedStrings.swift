@@ -185,6 +185,21 @@ let enStrings: [String: String] = [
     "recording.failed.title": "Recording Failed",
     "recording.failed.noFile": "No file was written.",
     "recording.recordButton": "Record",
+
+    // Status Bar
+    "statusBar.record": "Record",
+    "statusBar.stop": "Stop",
+    "statusBar.resume": "Resume",
+
+    // Internal Errors
+    "internalError.noDisplay": "No display",
+    "internalError.noScreenForRegion": "No screen for region",
+    "internalError.noDisplayFound": "No display found",
+    "internalError.noMicrophone": "No microphone available",
+    "internalError.cannotAddMicInput": "Cannot add microphone input",
+    "internalError.cannotAddAudioOutput": "Cannot add audio output",
+    "internalError.cannotCreateExportSession": "Could not create export session",
+    "internalError.unknownError": "Unknown error",
 ]
 
 // MARK: - Simplified Chinese
@@ -369,6 +384,21 @@ let zhHansStrings: [String: String] = [
     "recording.failed.title": "录制失败",
     "recording.failed.noFile": "未生成文件。",
     "recording.recordButton": "录制",
+
+    // Status Bar
+    "statusBar.record": "录制",
+    "statusBar.stop": "停止",
+    "statusBar.resume": "继续",
+
+    // Internal Errors
+    "internalError.noDisplay": "无显示器",
+    "internalError.noScreenForRegion": "没有屏幕对应此区域",
+    "internalError.noDisplayFound": "未找到显示器",
+    "internalError.noMicrophone": "无可用麦克风",
+    "internalError.cannotAddMicInput": "无法添加麦克风输入",
+    "internalError.cannotAddAudioOutput": "无法添加音频输出",
+    "internalError.cannotCreateExportSession": "无法创建导出会话",
+    "internalError.unknownError": "未知错误",
 ]
 
 // MARK: - Traditional Chinese
@@ -553,4 +583,19 @@ let zhHantStrings: [String: String] = [
     "recording.failed.title": "錄製失敗",
     "recording.failed.noFile": "未產生檔案。",
     "recording.recordButton": "錄製",
+
+    // Status Bar
+    "statusBar.record": "錄製",
+    "statusBar.stop": "停止",
+    "statusBar.resume": "繼續",
+
+    // Internal Errors
+    "internalError.noDisplay": "無顯示器",
+    "internalError.noScreenForRegion": "沒有螢幕對應此區域",
+    "internalError.noDisplayFound": "未找到顯示器",
+    "internalError.noMicrophone": "無可用麥克風",
+    "internalError.cannotAddMicInput": "無法加入麥克風輸入",
+    "internalError.cannotAddAudioOutput": "無法加入音訊輸出",
+    "internalError.cannotCreateExportSession": "無法建立匯出工作階段",
+    "internalError.unknownError": "未知錯誤",
 ]

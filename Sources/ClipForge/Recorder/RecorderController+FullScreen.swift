@@ -16,7 +16,7 @@ extension RecorderController {
                 )
                 guard let display = content.displays.first else {
                     throw NSError(domain: "ClipForge", code: -1,
-                                  userInfo: [NSLocalizedDescriptionKey: "No display found"])
+                                  userInfo: [NSLocalizedDescriptionKey: L("internalError.noDisplayFound")])
                 }
 
                 let filter = SCContentFilter(display: display, excludingWindows: [])

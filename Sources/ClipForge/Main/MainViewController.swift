@@ -4,7 +4,6 @@
 import AppKit
 import AVFoundation
 import ScreenCaptureKit
-import SwiftUI
 import UniformTypeIdentifiers
 
 class MainViewController: NSViewController {
@@ -99,6 +98,19 @@ class MainViewController: NSViewController {
         applyVolume()
         updateMuteButtonIcon()
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageChanged),
+            name: .languageChanged,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(recordingModeChanged),
+            name: .recordingModeChanged,
+            object: nil
+        )
+
         statusBar.show()
         statusBar.onCancel = { [weak self] in
             self?.cancelRecordingCountdown()
@@ -141,6 +153,36 @@ class MainViewController: NSViewController {
         }
 
         setupCallbacks()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func languageChanged() {
+        updateLocalizedStrings()
+    }
+
+    @objc private func recordingModeChanged() {
+        updateRecordButtonIcon()
+    }
+
+    private func updateLocalizedStrings() {
+        dontHideCheckbox.title = L("main.dontHide")
+        openButton.toolTip = L("main.tooltip.open")
+        playButton.toolTip = L("main.tooltip.play")
+        slider.toolTip = L("main.tooltip.scrub")
+        setButton.toolTip = L("main.tooltip.setCutPoint")
+        exportButton.toolTip = L("main.tooltip.export")
+        recordButton.toolTip = L("main.tooltip.record")
+        volumeSlider.toolTip = L("main.tooltip.volume")
+        muteButton.toolTip = L("main.tooltip.mute")
+        dontHideCheckbox.toolTip = L("main.tooltip.dontHide")
+        cropOverlay.toolTip = L("main.tooltip.crop")
+        segmentBar.toolTip = L("main.tooltip.timeline")
+        updatePlayButtonIcon()
+        updateMuteButtonIcon()
+        updateRecordButtonIcon()
     }
 
     func setupUI() {

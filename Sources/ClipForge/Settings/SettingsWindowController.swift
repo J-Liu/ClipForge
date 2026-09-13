@@ -2,12 +2,12 @@
 // Copyright © 2026 Jia Liu
 
 import AppKit
-import SwiftUI
 
 /// Manages the standalone Settings window.
 class SettingsWindowController: NSWindowController {
 
     static let shared = SettingsWindowController()
+    private let tabViewController = SettingsTabViewController()
 
     convenience init() {
         let window = NSWindow(
@@ -20,15 +20,21 @@ class SettingsWindowController: NSWindowController {
         window.center()
         window.isReleasedWhenClosed = false
 
-        let hosting = NSHostingView(rootView: SettingsView())
-        window.contentView = hosting
-
         self.init(window: window)
     }
 
     func present() {
+        contentViewController = tabViewController
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+
+        NotificationCenter.default.addObserver(
+            forName: .languageChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.window?.title = L("menu.app.settings").replacingOccurrences(of: "…", with: "")
+        }
     }
 }

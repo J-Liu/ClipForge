@@ -2,7 +2,6 @@
 // Copyright © 2026 Jia Liu
 
 import AppKit
-import SwiftUI
 import UniformTypeIdentifiers
 
 extension MainViewController {
@@ -26,10 +25,8 @@ extension MainViewController {
         }
         panel.canCreateDirectories = true
 
-        let optionsView = ExportOptionsView()
-        let hosting = NSHostingView(rootView: optionsView)
-        hosting.frame = NSRect(x: 0, y: 0, width: 280, height: 140)
-        panel.accessoryView = hosting
+        let optionsView = ExportOptionsView(frame: NSRect(x: 0, y: 0, width: 280, height: 140))
+        panel.accessoryView = optionsView
 
         panel.begin { [weak self] response in
             guard response == .OK, let outputURL = panel.url else { return }

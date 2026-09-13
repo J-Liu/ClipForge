@@ -15,7 +15,7 @@ extension RecorderController {
                 )
                 guard let display = content.displays.first else {
                     throw NSError(domain: "ClipForge", code: -1,
-                                  userInfo: [NSLocalizedDescriptionKey: "No display"])
+                                  userInfo: [NSLocalizedDescriptionKey: L("internalError.noDisplay")])
                 }
 
                 let filter = SCContentFilter(display: display, excludingWindows: [])
@@ -23,7 +23,7 @@ extension RecorderController {
                 // Convert AppKit screen rect to display-relative coordinates.
                 guard let targetScreen = NSScreen.screens.first(where: { $0.frame.intersects(region) }) else {
                     throw NSError(domain: "ClipForge", code: -1,
-                                  userInfo: [NSLocalizedDescriptionKey: "No screen for region"])
+                                  userInfo: [NSLocalizedDescriptionKey: L("internalError.noScreenForRegion")])
                 }
                 let screenHeight = targetScreen.frame.height
                 let displayRelativeX = region.origin.x - targetScreen.frame.origin.x

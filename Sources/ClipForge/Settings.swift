@@ -40,6 +40,7 @@ class Settings {
         }
         set {
             defaults.set(newValue.rawValue, forKey: Key.recordingMode)
+            NotificationCenter.default.post(name: .recordingModeChanged, object: nil)
         }
     }
 

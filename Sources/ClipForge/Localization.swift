@@ -3,6 +3,11 @@
 
 import Foundation
 
+extension Notification.Name {
+    static let languageChanged = Notification.Name("LanguageChanged")
+    static let recordingModeChanged = Notification.Name("RecordingModeChanged")
+}
+
 enum Language: String, CaseIterable {
     case english = "en"
     case simplifiedChinese = "zh-Hans"
@@ -31,6 +36,8 @@ class LocalizationManager: ObservableObject {
     @Published var currentLanguage: Language {
         didSet {
             UserDefaults.standard.set(currentLanguage.rawValue, forKey: "appLanguage")
+            loadStrings()
+            NotificationCenter.default.post(name: .languageChanged, object: nil)
         }
     }
 
@@ -48,7 +55,6 @@ class LocalizationManager: ObservableObject {
 
     func setLanguage(_ language: Language) {
         currentLanguage = language
-        loadStrings()
     }
 
     private func loadStrings() {

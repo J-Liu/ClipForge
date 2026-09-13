@@ -89,17 +89,17 @@ class StatusBarController {
         switch state {
         case .idle:
             button.image = NSImage(systemSymbolName: "record.circle",
-                                   accessibilityDescription: "Record")
+                                   accessibilityDescription: L("statusBar.record"))
         case .countdown(let seconds):
             button.title = "\(seconds)"
         case .recording:
             button.title = " \(formattedTime())"
             button.image = NSImage(systemSymbolName: "stop.circle.fill",
-                                   accessibilityDescription: "Stop")
+                                   accessibilityDescription: L("statusBar.stop"))
         case .paused:
             button.title = " \(formattedTime())"
             button.image = NSImage(systemSymbolName: "play.circle.fill",
-                                   accessibilityDescription: "Resume")
+                                   accessibilityDescription: L("statusBar.resume"))
         }
     }
 

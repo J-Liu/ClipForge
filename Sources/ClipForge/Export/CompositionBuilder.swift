@@ -15,21 +15,21 @@ class CompositionBuilder {
 
         var errorDescription: String? {
             switch self {
-            case .noKeptSegments: return "Nothing to export"
-            case .trackLoadFailed: return "Failed to load video track"
-            case .exportFailed(let msg): return "Export failed: \(msg)"
-            case .exportCancelled: return "Export cancelled"
+            case .noKeptSegments: return L("error.noKeptSegments")
+            case .trackLoadFailed: return L("error.trackLoadFailed", "")
+            case .exportFailed(let msg): return L("error.exportFailed", msg)
+            case .exportCancelled: return L("error.exportCancelled")
             }
         }
 
         var recoverySuggestion: String? {
             switch self {
             case .noKeptSegments:
-                return "Keep at least one segment before exporting."
+                return L("error.recovery.noKeptSegments")
             case .trackLoadFailed:
-                return "The file may be corrupted or use an unsupported codec."
+                return L("error.recovery.trackLoadFailed")
             case .exportFailed:
-                return "Try a different output location or a lower resolution."
+                return L("error.recovery.exportFailed")
             case .exportCancelled:
                 return nil
             }
@@ -255,7 +255,7 @@ class CompositionBuilder {
             asset: composition,
             presetName: format.exportPreset
         ) else {
-            completion(.failure(BuildError.exportFailed("Could not create export session")))
+            completion(.failure(BuildError.exportFailed(L("internalError.cannotCreateExportSession"))))
             return
         }
 
@@ -284,10 +284,10 @@ class CompositionBuilder {
                     completion(.failure(BuildError.exportCancelled))
                 case .failed:
                     completion(.failure(BuildError.exportFailed(
-                        session.error?.localizedDescription ?? "Unknown error"
+                        session.error?.localizedDescription ?? L("internalError.unknownError")
                     )))
                 default:
-                    completion(.failure(BuildError.exportFailed("Could not create export session")))
+                    completion(.failure(BuildError.exportFailed(L("internalError.cannotCreateExportSession"))))
                 }
             }
         }

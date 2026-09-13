@@ -108,7 +108,7 @@ class MainViewController: NSViewController {
 
         playerController.onClipsLoaded = { [weak self] in
             guard let self else { return }
-            self.updateClipBoundaries()
+            self.refreshTimelineUI()
             self.durationLabel.stringValue = TimeFormatter.displayString(
                 from: self.playerController.totalDuration
             )
@@ -524,8 +524,6 @@ class MainViewController: NSViewController {
         segmentBar.segments = newSegments
         segmentBar.totalDuration = total
         segmentBar.cutPoints = cutPoints
-
-        updateClipBoundaries()
     }
 
     private func toggleSegment(at index: Int) {
@@ -906,9 +904,9 @@ class MainViewController: NSViewController {
         volumeSlider.doubleValue = Double(effective)
     }
 
-    private func updateClipBoundaries() {
-        let clips = playerController.clips
-        segmentBar.clipBoundaries = clips.dropFirst().map { $0.startOnTimeline }
+    private func refreshTimelineUI() {
+        rebuildSegments()
+        segmentBar.clipBoundaries = playerController.clips.dropFirst().map { $0.startOnTimeline }
     }
 
     func resetCropSelection() {

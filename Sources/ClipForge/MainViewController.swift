@@ -237,6 +237,15 @@ class MainViewController: NSViewController {
             self?.updateCropRect(from: rect)
         }
 
+        playerView.onFilesDropped = { [weak self] urls, replace in
+            guard let self else { return }
+            if replace || self.playerController.urls.isEmpty {
+                self.loadVideos(urls: urls)
+            } else {
+                self.appendVideos(urls: urls)
+            }
+        }
+
         NSLayoutConstraint.activate([
             // Player view — fills the top, bottom anchored above the segment bar.
             playerView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -432,15 +441,12 @@ class MainViewController: NSViewController {
     }
 
     private func appendVideos(urls: [URL]) {
-        guard let currentURLs = playerController.urls.isEmpty ? nil : playerController.urls else {
-            // No current video — treat as a fresh load.
+        guard !playerController.urls.isEmpty else {
             loadVideos(urls: urls)
             return
         }
-        let combined = currentURLs + urls
-        // Preserve existing cutPoints and segments, but their times are on the old timeline.
-        // For now, reload the whole thing.
-        loadVideos(urls: combined)
+        let combined = playerController.urls + urls
+        loadVideos(urls: combined, preserveEdits: true)
     }
 
     @objc private func togglePlay() {

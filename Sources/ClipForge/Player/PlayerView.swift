@@ -1,8 +1,12 @@
 import AppKit
 import AVFoundation
+import UniformTypeIdentifiers
 
 class PlayerView: NSView {
     private let playerLayer = AVPlayerLayer()
+
+    /// Called when files are dropped. The Bool is true if the user held ⌘ (replace).
+    var onFilesDropped: (([URL], Bool) -> Void)?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -10,6 +14,8 @@ class PlayerView: NSView {
         layer?.backgroundColor = NSColor.black.cgColor
         playerLayer.videoGravity = .resizeAspect
         layer?.addSublayer(playerLayer)
+
+        registerForDraggedTypes([.fileURL])
     }
 
     override var isFlipped: Bool { true }
@@ -58,5 +64,40 @@ class PlayerView: NSView {
                           width: width, height: bounds.height)
         }
         return rect
+    }
+
+    private func videoURLs(from sender: NSDraggingInfo) -> [URL] {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [
+            .urlReadingFileURLsOnly: true,
+            .urlReadingContentsConformToTypes: [UTType.movie.identifier, UTType.video.identifier]
+        ]
+        guard let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: options
+        ) as? [URL] else {
+            return []
+        }
+        return urls
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        let urls = videoURLs(from: sender)
+        return urls.isEmpty ? [] : .copy
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let urls = videoURLs(from: sender)
+        guard !urls.isEmpty else { return false }
+        let replace = NSEvent.modifierFlags.contains(.command)
+        onFilesDropped?(urls, replace)
+        return true
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        // Update the drop indicator based on the current modifier.
+        if NSEvent.modifierFlags.contains(.command) {
+            return .generic   // replace indicator
+        }
+        return .copy          // append indicator
     }
 }

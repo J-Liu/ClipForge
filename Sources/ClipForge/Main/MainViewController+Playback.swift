@@ -70,6 +70,7 @@ extension MainViewController {
     }
 
     @objc func togglePlay() {
+        guard requireVideoLoaded() else { return }
         playerController.togglePlay()
         updatePlayButtonIcon()
     }
@@ -150,4 +151,3 @@ extension MainViewController {
         volumeSlider.doubleValue = Double(effective)
     }
 }
-

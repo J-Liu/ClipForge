@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 extension MainViewController {
 
     @objc func exportVideo() {
+        guard requireVideoLoaded() else { return }
         guard !playerController.urls.isEmpty else { return }
 
         let panel = NSSavePanel()

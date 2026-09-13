@@ -21,6 +21,8 @@ class PlayerController {
     /// Called when the current item changes (e.g. moving to the next video).
     var onCurrentItemChanged: ((Int) -> Void)?
 
+    var onLoadFailed: ((Int) -> Void)?
+
     var clips: [VideoClip] {
         var result: [VideoClip] = []
         var cursor = CMTime.zero
@@ -43,7 +45,7 @@ class PlayerController {
 
     func load(urls: [URL]) {
         removeObservers()
-        self.urls = urls
+        self.urls = []
         self.durations = []
         self.currentIndex = 0
         self.totalDuration = .zero
@@ -53,24 +55,45 @@ class PlayerController {
             return
         }
 
-        // Load durations asynchronously, then start playing the first.
         Task {
-            var loaded: [CMTime] = []
+            var loadedURLs: [URL] = []
+            var loadedDurations: [CMTime] = []
             var total = CMTime.zero
+            var failedCount = 0
+
             for url in urls {
                 let asset = AVURLAsset(url: url)
-                let d = (try? await asset.load(.duration)) ?? .zero
-                loaded.append(d)
-                total = CMTimeAdd(total, d)
+                if let d = try? await asset.load(.duration),
+                   d.isValid,
+                   CMTimeGetSeconds(d) > 0 {
+                    loadedURLs.append(url)
+                    loadedDurations.append(d)
+                    total = CMTimeAdd(total, d)
+                } else {
+                    NSLog("Skipping unloadable video: \(url)")
+                    failedCount += 1
+                }
             }
-            let finalDurations = loaded
+
+            let finalURLs = loadedURLs
+            let finalDurations = loadedDurations
             let finalTotal = total
+            let finalFailed = failedCount
+
             await MainActor.run {
+                self.urls = finalURLs
                 self.durations = finalDurations
                 self.totalDuration = finalTotal
-                self.playItem(at: 0, seekTo: .zero)
-                self.addObservers()
+                if !finalURLs.isEmpty {
+                    self.playItem(at: 0, seekTo: .zero)
+                    self.addObservers()
+                } else {
+                    self.player.replaceCurrentItem(with: nil)
+                }
                 self.onClipsLoaded?()
+                if finalFailed > 0 {
+                    self.onLoadFailed?(finalFailed)
+                }
             }
         }
     }

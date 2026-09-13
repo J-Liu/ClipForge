@@ -4,12 +4,19 @@ import AVFoundation
 extension MainViewController {
 
     @objc func addCutPoint() {
+        guard requireVideoLoaded() else { return }
         guard playerController.totalDuration.isValid else { return }
+
         let current = playerController.globalCurrentTime()
         let total = CMTimeGetSeconds(playerController.totalDuration)
         let t = CMTimeGetSeconds(current)
         guard t > 0, t < total else { return }
-        if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < 0.001 }) { return }
+        let minInterval = 1.0 / Double(Settings.shared.frameRate)
+        if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < minInterval }) {
+            showAlert(title: "Cut point too close",
+                      message: "There is already a cut point within \(Int(minInterval * 1000)) ms.")
+            return
+        }
 
         registerUndo()
         cutPoints.append(current)
@@ -18,11 +25,18 @@ extension MainViewController {
     }
 
     func addCutPointAt(_ time: CMTime) {
+        guard requireVideoLoaded() else { return }
         guard playerController.totalDuration.isValid else { return }
+
         let total = CMTimeGetSeconds(playerController.totalDuration)
         let t = CMTimeGetSeconds(time)
         guard t > 0, t < total else { return }
-        if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < 0.001 }) { return }
+        let minInterval = 1.0 / Double(Settings.shared.frameRate)
+        if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < minInterval }) {
+            showAlert(title: "Cut point too close",
+                      message: "There is already a cut point within \(Int(minInterval * 1000)) ms.")
+            return
+        }
 
         registerUndo()
         cutPoints.append(time)
@@ -99,4 +113,3 @@ extension MainViewController {
         }
     }
 }
-

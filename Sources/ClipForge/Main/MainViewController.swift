@@ -114,6 +114,14 @@ class MainViewController: NSViewController {
             )
         }
 
+        playerController.onLoadFailed = { [weak self] count in
+            self?.showAlert(
+                title: "Some videos could not be loaded",
+                message: "\(count) file(s) were skipped.",
+                recovery: "The file may be corrupted or use an unsupported codec."
+            )
+        }
+
         recorder.onUnexpectedStop = { [weak self] error in
             guard let self else { return }
             self.showError(ClipForgeError.from(error))
@@ -466,5 +474,14 @@ class MainViewController: NSViewController {
 
     func resetCropSelection() {
         cropOverlay.resetSelection()
+    }
+
+    @discardableResult
+    func requireVideoLoaded() -> Bool {
+        if playerController.urls.isEmpty {
+            showError(ClipForgeError.noVideoLoaded)
+            return false
+        }
+        return true
     }
 }

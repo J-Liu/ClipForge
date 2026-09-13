@@ -13,35 +13,35 @@ struct EditingSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Playback") {
-                Toggle("Auto-play when opening a video", isOn: $autoPlayOnOpen)
+            Section(L("settings.editing.playback")) {
+                Toggle(L("settings.editing.autoPlay"), isOn: $autoPlayOnOpen)
 
-                Picker("When playback ends", selection: $playbackEndBehavior) {
-                    Text("Restart from beginning").tag("restart")
-                    Text("Play next in folder").tag("next")
-                    Text("Stop").tag("stop")
+                Picker(L("settings.editing.playbackEnd"), selection: $playbackEndBehavior) {
+                    Text(L("settings.editing.playbackEnd.restart")).tag("restart")
+                    Text(L("settings.editing.playbackEnd.next")).tag("next")
+                    Text(L("settings.editing.playbackEnd.stop")).tag("stop")
                 }
                 .pickerStyle(.menu)
             }
 
-            Section("Export") {
-                Picker("Resolution", selection: $exportResolution) {
+            Section(L("settings.editing.export")) {
+                Picker(L("settings.editing.resolution"), selection: $exportResolution) {
                     ForEach(ExportResolution.allCases, id: \.rawValue) { r in
-                        Text(r.displayName).tag(r.rawValue)
+                        Text(r.localizedName).tag(r.rawValue)
                     }
                 }
                 .pickerStyle(.menu)
 
-                Picker("Frame rate", selection: $exportFrameRate) {
+                Picker(L("settings.editing.frameRate"), selection: $exportFrameRate) {
                     ForEach(ExportFrameRate.allCases, id: \.rawValue) { r in
-                        Text(r.displayName).tag(r.rawValue)
+                        Text(r.localizedName).tag(r.rawValue)
                     }
                 }
                 .pickerStyle(.menu)
 
-                Picker("Format", selection: $exportFormat) {
+                Picker(L("settings.editing.format"), selection: $exportFormat) {
                     ForEach(ExportFormat.allCases, id: \.rawValue) { f in
-                        Text(f.displayName).tag(f.rawValue)
+                        Text(f.localizedName).tag(f.rawValue)
                     }
                 }
                 .pickerStyle(.menu)

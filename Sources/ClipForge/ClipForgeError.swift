@@ -19,46 +19,46 @@ enum ClipForgeError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noVideoLoaded:
-            return "No video loaded"
+            return L("error.noVideoLoaded")
         case .noKeptSegments:
-            return "Nothing to export"
+            return L("error.noKeptSegments")
         case .trackLoadFailed(let detail):
-            return "Failed to load video track: \(detail)"
+            return L("error.trackLoadFailed", detail)
         case .exportFailed(let detail):
-            return "Export failed: \(detail)"
+            return L("error.exportFailed", detail)
         case .exportCancelled:
-            return "Export cancelled"
+            return L("error.exportCancelled")
         case .recordingFailed(let detail):
-            return "Recording failed: \(detail)"
+            return L("error.recordingFailed", detail)
         case .screenRecordingPermissionDenied:
-            return "Screen recording permission denied"
+            return L("error.screenRecordingPermissionDenied")
         case .microphonePermissionDenied:
-            return "Microphone permission denied"
+            return L("error.microphonePermissionDenied")
         case .outputDirectoryNotWritable(let path):
-            return "Cannot write to output folder: \(path)"
+            return L("error.outputDirectoryNotWritable", path)
         }
     }
 
     var recoverySuggestion: String? {
         switch self {
         case .noVideoLoaded:
-            return "Open a video before exporting."
+            return L("error.recovery.noVideoLoaded")
         case .noKeptSegments:
-            return "Keep at least one segment before exporting."
+            return L("error.recovery.noKeptSegments")
         case .trackLoadFailed:
-            return "The file may be corrupted or use an unsupported codec."
+            return L("error.recovery.trackLoadFailed")
         case .exportFailed:
-            return "Try a different output location, or choose a lower resolution."
+            return L("error.recovery.exportFailed")
         case .exportCancelled:
             return nil
         case .recordingFailed:
-            return "Make sure you have enough disk space and the target is still available."
+            return L("error.recovery.recordingFailed")
         case .screenRecordingPermissionDenied:
-            return "Go to System Settings → Privacy & Security → Screen Recording and enable ClipForge, then restart the app."
+            return L("error.recovery.screenRecordingPermissionDenied")
         case .microphonePermissionDenied:
-            return "Go to System Settings → Privacy & Security → Microphone and enable ClipForge, then restart the app."
+            return L("error.recovery.microphonePermissionDenied")
         case .outputDirectoryNotWritable:
-            return "Choose a different output folder in Settings → Recording."
+            return L("error.recovery.outputDirectoryNotWritable")
         }
     }
 

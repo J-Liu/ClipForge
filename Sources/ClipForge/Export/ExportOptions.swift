@@ -10,12 +10,12 @@ enum ExportResolution: String, CaseIterable {
     case p720
     case p480
 
-    var displayName: String {
+    var localizedName: String {
         switch self {
-        case .original: return "Original"
-        case .p1080: return "1080p"
-        case .p720: return "720p"
-        case .p480: return "480p"
+        case .original: return L("export.original")
+        case .p1080: return L("export.1080p")
+        case .p720: return L("export.720p")
+        case .p480: return L("export.480p")
         }
     }
 
@@ -34,11 +34,11 @@ enum ExportFrameRate: String, CaseIterable {
     case fps30
     case fps60
 
-    var displayName: String {
+    var localizedName: String {
         switch self {
-        case .original: return "Original"
-        case .fps30: return "30 fps"
-        case .fps60: return "60 fps"
+        case .original: return L("export.original")
+        case .fps30: return L("export.30fps")
+        case .fps60: return L("export.60fps")
         }
     }
 
@@ -56,11 +56,11 @@ enum ExportFormat: String, CaseIterable {
     case mp4h265
     case mov
 
-    var displayName: String {
+    var localizedName: String {
         switch self {
-        case .mp4h264: return "MP4 (H.264)"
-        case .mp4h265: return "MP4 (H.265)"
-        case .mov: return "MOV"
+        case .mp4h264: return L("export.mp4h264")
+        case .mp4h265: return L("export.mp4h265")
+        case .mov: return L("export.mov")
         }
     }
 

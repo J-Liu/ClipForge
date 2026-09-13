@@ -53,9 +53,9 @@ extension MainViewController {
                 self.recordButton.isEnabled = true
                 self.view.window?.makeKeyAndOrderFront(nil)
                 if let url = url {
-                    self.showAlert(title: "Recording Saved", message: url.path)
+                    self.showAlert(title: L("recording.saved.title"), message: url.path)
                 } else {
-                    self.showAlert(title: "Recording Failed", message: "No file was written.")
+                    self.showAlert(title: L("recording.failed.title"), message: L("recording.failed.noFile"))
                 }
             }
         }
@@ -147,9 +147,9 @@ extension MainViewController {
 
         let style = Settings.shared.recordingButtonStyle
         let modes: [(RecordingMode, String, String)] = [
-            (.fullScreen, "Full Screen", "rectangle.inset.filled"),
-            (.window, "Window", "macwindow"),
-            (.region, "Region", "rectangle.dashed")
+            (.fullScreen, L("settings.recording.mode.fullScreen"), "rectangle.inset.filled"),
+            (.window, L("settings.recording.mode.window"), "macwindow"),
+            (.region, L("settings.recording.mode.region"), "rectangle.dashed")
         ]
 
         for (mode, title, iconName) in modes {
@@ -185,7 +185,7 @@ extension MainViewController {
         case .window:     name = "macwindow"
         case .region:     name = "rectangle.dashed"
         }
-        recordButton.image = NSImage(systemSymbolName: name, accessibilityDescription: "Record")
+        recordButton.image = NSImage(systemSymbolName: name, accessibilityDescription: L("recording.recordButton"))
         recordButton.title = ""
     }
 

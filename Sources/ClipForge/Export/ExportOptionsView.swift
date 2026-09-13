@@ -14,30 +14,30 @@ struct ExportOptionsView: View {
 
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
                 GridRow {
-                    Text("Resolution")
+                    Text(L("export.resolution"))
                     Picker("", selection: $resolution) {
                         ForEach(ExportResolution.allCases, id: \.rawValue) { r in
-                            Text(r.displayName).tag(r.rawValue)
+                            Text(r.localizedName).tag(r.rawValue)
                         }
                     }
                     .labelsHidden()
                     .frame(width: 140)
                 }
                 GridRow {
-                    Text("Frame rate")
+                    Text(L("export.frameRate"))
                     Picker("", selection: $frameRate) {
                         ForEach(ExportFrameRate.allCases, id: \.rawValue) { r in
-                            Text(r.displayName).tag(r.rawValue)
+                            Text(r.localizedName).tag(r.rawValue)
                         }
                     }
                     .labelsHidden()
                     .frame(width: 140)
                 }
                 GridRow {
-                    Text("Format")
+                    Text(L("export.format"))
                     Picker("", selection: $format) {
                         ForEach(ExportFormat.allCases, id: \.rawValue) { f in
-                            Text(f.displayName).tag(f.rawValue)
+                            Text(f.localizedName).tag(f.rawValue)
                         }
                     }
                     .labelsHidden()

@@ -26,13 +26,13 @@ class MenuBuilder {
         let menu = NSMenu()
         let appName = "ClipForge"
 
-        let about = NSMenuItem(title: "About \(appName)",
+        let about = NSMenuItem(title: L("menu.app.about", appName),
                                action: #selector(AppActions.showAbout),
                                keyEquivalent: "")
         about.target = AppActions.shared
         menu.addItem(about)
 
-        let updates = NSMenuItem(title: "Check for Updates…",
+        let updates = NSMenuItem(title: L("menu.app.checkForUpdates"),
                                  action: #selector(AppActions.checkForUpdates),
                                  keyEquivalent: "")
         updates.target = AppActions.shared
@@ -40,7 +40,7 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        let settings = NSMenuItem(title: "Settings…",
+        let settings = NSMenuItem(title: L("menu.app.settings"),
                                   action: #selector(AppActions.openSettings),
                                   keyEquivalent: ",")
         settings.target = AppActions.shared
@@ -48,23 +48,23 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        menu.addItem(withTitle: "Hide \(appName)",
+        menu.addItem(withTitle: L("menu.app.hide", appName),
                      action: #selector(NSApplication.hide(_:)),
                      keyEquivalent: "h")
 
-        let hideOthers = NSMenuItem(title: "Hide Others",
+        let hideOthers = NSMenuItem(title: L("menu.app.hideOthers"),
                                     action: #selector(NSApplication.hideOtherApplications(_:)),
                                     keyEquivalent: "h")
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(hideOthers)
 
-        menu.addItem(withTitle: "Show All",
+        menu.addItem(withTitle: L("menu.app.showAll"),
                      action: #selector(NSApplication.unhideAllApplications(_:)),
                      keyEquivalent: "")
 
         menu.addItem(.separator())
 
-        menu.addItem(withTitle: "Quit \(appName)",
+        menu.addItem(withTitle: L("menu.app.quit", appName),
                      action: #selector(NSApplication.terminate(_:)),
                      keyEquivalent: "q")
 
@@ -76,9 +76,9 @@ class MenuBuilder {
 
     private static func makeFileMenu() -> NSMenuItem {
         let item = NSMenuItem()
-        let menu = NSMenu(title: "File")
+        let menu = NSMenu(title: L("menu.file"))
 
-        let newWindow = NSMenuItem(title: "New Window",
+        let newWindow = NSMenuItem(title: L("menu.file.newWindow"),
                                    action: #selector(AppActions.newWindow),
                                    keyEquivalent: "n")
         newWindow.target = AppActions.shared
@@ -86,20 +86,20 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        let open = NSMenuItem(title: "Open…",
+        let open = NSMenuItem(title: L("menu.file.open"),
                               action: #selector(AppActions.openFile),
                               keyEquivalent: "o")
         open.target = AppActions.shared
         menu.addItem(open)
 
-        let append = NSMenuItem(title: "Append Video…",
+        let append = NSMenuItem(title: L("menu.file.appendVideo"),
                                 action: #selector(AppActions.appendVideo),
                                 keyEquivalent: "o")
         append.keyEquivalentModifierMask = [.command, .shift]
         append.target = AppActions.shared
         menu.addItem(append)
 
-        let export = NSMenuItem(title: "Export…",
+        let export = NSMenuItem(title: L("menu.file.export"),
                                 action: #selector(AppActions.exportVideo),
                                 keyEquivalent: "e")
         export.target = AppActions.shared
@@ -107,7 +107,7 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        menu.addItem(withTitle: "Close",
+        menu.addItem(withTitle: L("menu.file.close"),
                      action: #selector(NSWindow.performClose(_:)),
                      keyEquivalent: "w")
 
@@ -119,13 +119,13 @@ class MenuBuilder {
 
     private static func makeEditMenu() -> NSMenuItem {
         let item = NSMenuItem()
-        let menu = NSMenu(title: "Edit")
+        let menu = NSMenu(title: L("menu.edit"))
 
-        menu.addItem(withTitle: "Undo",
+        menu.addItem(withTitle: L("menu.edit.undo"),
                      action: Selector(("undo:")),
                      keyEquivalent: "z")
 
-        let redo = NSMenuItem(title: "Redo",
+        let redo = NSMenuItem(title: L("menu.edit.redo"),
                               action: Selector(("redo:")),
                               keyEquivalent: "z")
         redo.keyEquivalentModifierMask = [.command, .shift]
@@ -133,10 +133,10 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        menu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        menu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        menu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        menu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        menu.addItem(withTitle: L("menu.edit.cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        menu.addItem(withTitle: L("menu.edit.copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        menu.addItem(withTitle: L("menu.edit.paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        menu.addItem(withTitle: L("menu.edit.selectAll"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
 
         item.submenu = menu
         return item
@@ -146,9 +146,9 @@ class MenuBuilder {
 
     private static func makePlaybackMenu() -> NSMenuItem {
         let item = NSMenuItem()
-        let menu = NSMenu(title: "Playback")
+        let menu = NSMenu(title: L("menu.playback"))
 
-        let play = NSMenuItem(title: "Play/Pause",
+        let play = NSMenuItem(title: L("menu.playback.playPause"),
                               action: #selector(AppActions.togglePlay),
                               keyEquivalent: " ")
         play.keyEquivalentModifierMask = []
@@ -157,21 +157,21 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        let mute = NSMenuItem(title: "Mute",
+        let mute = NSMenuItem(title: L("menu.playback.mute"),
                               action: #selector(AppActions.toggleMute),
                               keyEquivalent: "m")
         mute.keyEquivalentModifierMask = [.command, .shift]
         mute.target = AppActions.shared
         menu.addItem(mute)
 
-        let volUp = NSMenuItem(title: "Volume Up",
+        let volUp = NSMenuItem(title: L("menu.playback.volumeUp"),
                                action: #selector(AppActions.increaseVolume),
                                keyEquivalent: "\u{F700}")   // up arrow
         volUp.keyEquivalentModifierMask = [.command]
         volUp.target = AppActions.shared
         menu.addItem(volUp)
 
-        let volDown = NSMenuItem(title: "Volume Down",
+        let volDown = NSMenuItem(title: L("menu.playback.volumeDown"),
                                  action: #selector(AppActions.decreaseVolume),
                                  keyEquivalent: "\u{F701}")   // down arrow
         volDown.keyEquivalentModifierMask = [.command]
@@ -180,16 +180,16 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        addPlaybackItem(to: menu, title: "Back 1 Frame",
+        addPlaybackItem(to: menu, title: L("menu.playback.back1Frame"),
                         action: #selector(AppActions.backOneFrame),
                         key: "\u{F702}")   // left arrow
-        addPlaybackItem(to: menu, title: "Forward 1 Frame",
+        addPlaybackItem(to: menu, title: L("menu.playback.forward1Frame"),
                         action: #selector(AppActions.forwardOneFrame),
                         key: "\u{F703}")   // right arrow
-        addPlaybackItem(to: menu, title: "Back 5 Seconds",
+        addPlaybackItem(to: menu, title: L("menu.playback.back5Seconds"),
                         action: #selector(AppActions.backFiveSeconds),
                         key: "\u{F701}")   // down arrow
-        addPlaybackItem(to: menu, title: "Forward 5 Seconds",
+        addPlaybackItem(to: menu, title: L("menu.playback.forward5Seconds"),
                         action: #selector(AppActions.forwardFiveSeconds),
                         key: "\u{F700}")   // up arrow
 
@@ -208,23 +208,23 @@ class MenuBuilder {
 
     private static func makeRecordMenu() -> NSMenuItem {
         let item = NSMenuItem()
-        let menu = NSMenu(title: "Record")
+        let menu = NSMenu(title: L("menu.record"))
 
-        let fullScreen = NSMenuItem(title: "Full Screen",
+        let fullScreen = NSMenuItem(title: L("menu.record.fullScreen"),
                                     action: #selector(AppActions.setModeFullScreen),
                                     keyEquivalent: "1")
         fullScreen.keyEquivalentModifierMask = [.control]
         fullScreen.target = AppActions.shared
         menu.addItem(fullScreen)
 
-        let window = NSMenuItem(title: "Window",
+        let window = NSMenuItem(title: L("menu.record.window"),
                                 action: #selector(AppActions.setModeWindow),
                                 keyEquivalent: "2")
         window.keyEquivalentModifierMask = [.control]
         window.target = AppActions.shared
         menu.addItem(window)
 
-        let region = NSMenuItem(title: "Region",
+        let region = NSMenuItem(title: L("menu.record.region"),
                                 action: #selector(AppActions.setModeRegion),
                                 keyEquivalent: "3")
         region.keyEquivalentModifierMask = [.control]
@@ -233,7 +233,7 @@ class MenuBuilder {
 
         menu.addItem(.separator())
 
-        let start = NSMenuItem(title: "Start Recording",
+        let start = NSMenuItem(title: L("menu.record.start"),
                                action: #selector(AppActions.startRecording),
                                keyEquivalent: "r")
         start.target = AppActions.shared
@@ -247,13 +247,13 @@ class MenuBuilder {
 
     private static func makeWindowMenu() -> NSMenuItem {
         let item = NSMenuItem()
-        let menu = NSMenu(title: "Window")
+        let menu = NSMenu(title: L("menu.window"))
 
-        menu.addItem(withTitle: "Minimize",
+        menu.addItem(withTitle: L("menu.window.minimize"),
                      action: #selector(NSWindow.performMiniaturize(_:)),
                      keyEquivalent: "m")
 
-        menu.addItem(withTitle: "Zoom",
+        menu.addItem(withTitle: L("menu.window.zoom"),
                      action: #selector(NSWindow.performZoom(_:)),
                      keyEquivalent: "")
 

@@ -7,13 +7,13 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             GeneralSettingsView()
-                .tabItem { Label("General", systemImage: "gear") }
+                .tabItem { Label(L("settings.tab.general"), systemImage: "gear") }
 
             RecordingSettingsView()
-                .tabItem { Label("Recording", systemImage: "record.circle") }
+                .tabItem { Label(L("settings.tab.recording"), systemImage: "record.circle") }
 
             EditingSettingsView()
-                .tabItem { Label("Editing", systemImage: "scissors") }
+                .tabItem { Label(L("settings.tab.editing"), systemImage: "scissors") }
         }
         .padding(20)
         .frame(width: 520, height: 420)

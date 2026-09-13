@@ -4,6 +4,7 @@
 import SwiftUI
 
 struct GeneralSettingsView: View {
+    @ObservedObject var localization = LocalizationManager.shared
     @AppStorage("quitAfterLastWindowClosed") private var quitAfterLastWindowClosed = false
     @AppStorage("dontHideWindow") private var dontHideWindow = false
     @AppStorage("countdownSeconds") private var countdownSeconds = 3
@@ -11,20 +12,29 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Quit after closing the last window",
+                Picker(L("settings.general.language"), selection: $localization.currentLanguage) {
+                    ForEach(Language.allCases, id: \.self) { lang in
+                        Text(lang.nativeName).tag(lang)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
+            Section {
+                Toggle(L("settings.general.quitAfterLastWindow"),
                        isOn: $quitAfterLastWindowClosed)
             }
 
             Section {
-                Toggle("Don't hide the main window during recording",
+                Toggle(L("settings.general.dontHideWindow"),
                        isOn: $dontHideWindow)
             }
 
             Section {
-                Picker("Countdown before recording", selection: $countdownSeconds) {
-                    Text("None").tag(0)
-                    Text("3 seconds").tag(3)
-                    Text("5 seconds").tag(5)
+                Picker(L("settings.general.countdown"), selection: $countdownSeconds) {
+                    Text(L("settings.general.countdown.none")).tag(0)
+                    Text(L("settings.general.countdown.3seconds")).tag(3)
+                    Text(L("settings.general.countdown.5seconds")).tag(5)
                 }
                 .pickerStyle(.menu)
             }

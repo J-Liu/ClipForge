@@ -16,8 +16,8 @@ extension MainViewController {
         guard t > 0, t < total else { return }
         let minInterval = 1.0 / Double(Settings.shared.frameRate)
         if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < minInterval }) {
-            showAlert(title: "Cut point too close",
-                      message: "There is already a cut point within \(Int(minInterval * 1000)) ms.")
+            showAlert(title: L("editing.cutPointTooClose.title"),
+                      message: L("editing.cutPointTooClose.message", Int(minInterval * 1000)))
             return
         }
 
@@ -36,8 +36,8 @@ extension MainViewController {
         guard t > 0, t < total else { return }
         let minInterval = 1.0 / Double(Settings.shared.frameRate)
         if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < minInterval }) {
-            showAlert(title: "Cut point too close",
-                      message: "There is already a cut point within \(Int(minInterval * 1000)) ms.")
+            showAlert(title: L("editing.cutPointTooClose.title"),
+                      message: L("editing.cutPointTooClose.message", Int(minInterval * 1000)))
             return
         }
 

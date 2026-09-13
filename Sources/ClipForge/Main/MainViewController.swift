@@ -12,13 +12,13 @@ class MainViewController: NSViewController {
     let playerView = PlayerView()
 
     let openButton: NSButton = {
-        let b = NSButton(image: NSImage(systemSymbolName: "folder", accessibilityDescription: "Open")!,
+        let b = NSButton(image: NSImage(systemSymbolName: "folder", accessibilityDescription: L("menu.file.open"))!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
         return b
     }()
     let playButton: NSButton = {
-        let b = NSButton(image: NSImage(systemSymbolName: "play.fill", accessibilityDescription: "Play")!,
+        let b = NSButton(image: NSImage(systemSymbolName: "play.fill", accessibilityDescription: L("menu.playback.playPause"))!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
         return b
@@ -33,7 +33,7 @@ class MainViewController: NSViewController {
 
     let segmentBar = SegmentBarView()
     let setButton: NSButton = {
-        let b = NSButton(image: NSImage(systemSymbolName: "scissors", accessibilityDescription: "Set cut point")!,
+        let b = NSButton(image: NSImage(systemSymbolName: "scissors", accessibilityDescription: L("main.tooltip.setCutPoint"))!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
         return b
@@ -44,7 +44,7 @@ class MainViewController: NSViewController {
 
     let exportButton: NSButton = {
         let b = NSButton(image: NSImage(systemSymbolName: "arrow.down.doc",
-                                        accessibilityDescription: "Export")!,
+                                        accessibilityDescription: L("menu.file.export"))!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
         return b
@@ -57,7 +57,7 @@ class MainViewController: NSViewController {
     let recorder = RecorderController()
     let recordButton: NSButton = {
         let b = NSButton(image: NSImage(systemSymbolName: "record.circle",
-                                        accessibilityDescription: "Record")!,
+                                        accessibilityDescription: L("recording.recordButton"))!,
                          target: nil, action: nil)
         b.title = ""
         b.bezelStyle = .rounded
@@ -74,7 +74,7 @@ class MainViewController: NSViewController {
     }()
 
     let statusBar = StatusBarController()
-    let dontHideCheckbox = NSButton(checkboxWithTitle: "Don't hide", target: nil, action: nil)
+    let dontHideCheckbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
 
     let windowPicker = WindowPickerOverlay()
     let regionPicker = RegionPickerOverlay()
@@ -82,7 +82,7 @@ class MainViewController: NSViewController {
     let volumeSlider = NSSlider(value: 0.5, minValue: 0, maxValue: 1, target: nil, action: nil)
     let muteButton: NSButton = {
         let b = NSButton(image: NSImage(systemSymbolName: "speaker.wave.2.fill",
-                                        accessibilityDescription: "Mute")!,
+                                        accessibilityDescription: L("menu.playback.mute"))!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
         return b
@@ -120,9 +120,9 @@ class MainViewController: NSViewController {
 
         playerController.onLoadFailed = { [weak self] count in
             self?.showAlert(
-                title: "Some videos could not be loaded",
-                message: "\(count) file(s) were skipped.",
-                recovery: "The file may be corrupted or use an unsupported codec."
+                title: L("alert.someVideosNotLoaded.title"),
+                message: L("alert.someVideosNotLoaded.message", count),
+                recovery: L("alert.someVideosNotLoaded.recovery")
             )
         }
 
@@ -134,7 +134,7 @@ class MainViewController: NSViewController {
             // Try to save whatever was recorded.
             self.recorder.stopRecording { url in
                 if let url = url {
-                    self.showAlert(title: "Recording Saved (partial)",
+                    self.showAlert(title: L("alert.recordingSaved.title"),
                                    message: url.path)
                 }
             }
@@ -182,6 +182,7 @@ class MainViewController: NSViewController {
         exportButton.target = self
         exportButton.action = #selector(exportVideo)
 
+        dontHideCheckbox.title = L("main.dontHide")
         dontHideCheckbox.target = self
         dontHideCheckbox.action = #selector(dontHideChanged)
         dontHideCheckbox.state = Settings.shared.dontHideWindow ? .on : .off
@@ -191,12 +192,12 @@ class MainViewController: NSViewController {
         recordButton.sendAction(on: [.leftMouseUp, .rightMouseUp])
 
         let menuButton = NSButton(image: NSImage(systemSymbolName: "chevron.down",
-                                                  accessibilityDescription: "Mode")!,
+                                                  accessibilityDescription: L("main.tooltip.recordMode"))!,
                                   target: self,
                                   action: #selector(showRecordModeMenu))
         menuButton.isBordered = false
         menuButton.translatesAutoresizingMaskIntoConstraints = false
-        menuButton.toolTip = "Choose recording mode"
+        menuButton.toolTip = L("main.tooltip.recordMode")
 
         volumeSlider.target = self
         volumeSlider.action = #selector(volumeChanged)
@@ -210,18 +211,18 @@ class MainViewController: NSViewController {
             self?.addCutPointAt(time)
         }
 
-        openButton.toolTip = "Open video (⌘O)"
-        playButton.toolTip = "Play / Pause (Space)"
-        slider.toolTip = "Drag to scrub through the timeline"
-        setButton.toolTip = "Add cut point at the current position"
-        exportButton.toolTip = "Export (⌘E)"
-        recordButton.toolTip = "Start recording (⌘R)"
-        menuButton.toolTip = "Choose recording mode"
-        volumeSlider.toolTip = "Volume"
-        muteButton.toolTip = "Mute / Unmute (⇧⌘M)"
-        dontHideCheckbox.toolTip = "Keep the main window visible while recording"
-        cropOverlay.toolTip = "Drag to crop. Press Esc to reset."
-        segmentBar.toolTip = "Click to add a cut point. Right-click a segment to keep/remove it. Double-click a cut point to delete."
+        openButton.toolTip = L("main.tooltip.open")
+        playButton.toolTip = L("main.tooltip.play")
+        slider.toolTip = L("main.tooltip.scrub")
+        setButton.toolTip = L("main.tooltip.setCutPoint")
+        exportButton.toolTip = L("main.tooltip.export")
+        recordButton.toolTip = L("main.tooltip.record")
+        menuButton.toolTip = L("main.tooltip.recordMode")
+        volumeSlider.toolTip = L("main.tooltip.volume")
+        muteButton.toolTip = L("main.tooltip.mute")
+        dontHideCheckbox.toolTip = L("main.tooltip.dontHide")
+        cropOverlay.toolTip = L("main.tooltip.crop")
+        segmentBar.toolTip = L("main.tooltip.timeline")
 
 
         view.addSubview(playerView)
@@ -421,7 +422,7 @@ class MainViewController: NSViewController {
         }
         alert.informativeText = info
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L("alert.ok"))
         if let window = view.window {
             alert.beginSheetModal(for: window, completionHandler: nil)
         } else {
@@ -432,15 +433,15 @@ class MainViewController: NSViewController {
     func showError(_ error: Error) {
         let cf = ClipForgeError.from(error)
         let alert = NSAlert()
-        alert.messageText = cf.errorDescription ?? "Error"
+        alert.messageText = cf.errorDescription ?? L("error.unknown")
         alert.informativeText = cf.recoverySuggestion ?? ""
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L("alert.ok"))
 
         // Special case: permission errors offer a shortcut to System Settings.
         switch cf {
         case .screenRecordingPermissionDenied, .microphonePermissionDenied:
-            alert.addButton(withTitle: "Open System Settings")
+            alert.addButton(withTitle: L("alert.openSystemSettings"))
         default:
             break
         }

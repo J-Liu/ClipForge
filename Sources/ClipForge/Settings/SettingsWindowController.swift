@@ -16,7 +16,7 @@ class SettingsWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Settings"
+        window.title = L("menu.app.settings").replacingOccurrences(of: "…", with: "")
         window.center()
         window.isReleasedWhenClosed = false
 

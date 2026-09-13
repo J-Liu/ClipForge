@@ -56,13 +56,13 @@ extension MainViewController {
             format: format,
             outputURL: outputURL,
             progress: { [weak self] value in
-                self?.view.window?.title = String(format: "Exporting… %.0f%%", value * 100)
+                self?.view.window?.title = L("alert.exporting", value * 100)
             },
             completion: { [weak self] result in
                 self?.view.window?.title = originalTitle
                 switch result {
                 case .success:
-                    self?.showAlert(title: "Export Complete",
+                    self?.showAlert(title: L("alert.exportComplete.title"),
                                     message: outputURL.lastPathComponent)
                 case .failure(let error):
                     self?.showError(error)

@@ -17,7 +17,7 @@ class TimeInputView: NSView {
 
     private let goButton: NSButton = {
         let b = NSButton(image: NSImage(systemSymbolName: "scope",
-                                        accessibilityDescription: "Go to time")!,
+                                        accessibilityDescription: L("timeInput.goToTime"))!,
                          target: nil, action: nil)
         b.bezelStyle = .rounded
         return b
@@ -61,7 +61,7 @@ class TimeInputView: NSView {
         goButton.target = self
         goButton.action = #selector(commit)
         goButton.bezelStyle = .rounded
-        goButton.toolTip = "Seek to the entered time"
+        goButton.toolTip = L("timeInput.seekToTime")
 
         let stack = NSStackView(views: [
             hoursField, colon1,

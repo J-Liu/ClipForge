@@ -20,28 +20,28 @@ struct RecordingSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Default Mode") {
-                Picker("Recording mode", selection: $recordingMode) {
-                    Text("Full Screen").tag("fullScreen")
-                    Text("Window").tag("window")
-                    Text("Region").tag("region")
+            Section(L("settings.recording.defaultMode")) {
+                Picker(L("settings.recording.mode"), selection: $recordingMode) {
+                    Text(L("settings.recording.mode.fullScreen")).tag("fullScreen")
+                    Text(L("settings.recording.mode.window")).tag("window")
+                    Text(L("settings.recording.mode.region")).tag("region")
                 }
                 .pickerStyle(.menu)
 
-                Picker("Button style", selection: $recordingButtonStyle) {
-                    Text("Pick mode, then press").tag("modePicker")
-                    Text("Menu items start directly").tag("directAction")
+                Picker(L("settings.recording.buttonStyle"), selection: $recordingButtonStyle) {
+                    Text(L("settings.recording.buttonStyle.modePicker")).tag("modePicker")
+                    Text(L("settings.recording.buttonStyle.directAction")).tag("directAction")
                 }
                 .pickerStyle(.menu)
             }
 
-            Section("Audio") {
-                Toggle("Capture system audio", isOn: $captureSystemAudio)
-                Toggle("Capture microphone", isOn: $captureMicrophone)
+            Section(L("settings.recording.audio")) {
+                Toggle(L("settings.recording.captureSystemAudio"), isOn: $captureSystemAudio)
+                Toggle(L("settings.recording.captureMicrophone"), isOn: $captureMicrophone)
 
                 VStack(alignment: .leading) {
                     HStack {
-                        Text("Microphone gain")
+                        Text(L("settings.recording.microphoneGain"))
                         Spacer()
                         Text(String(format: "%.1f×", microphoneGain))
                             .foregroundStyle(.secondary)
@@ -52,40 +52,40 @@ struct RecordingSettingsView: View {
                 .disabled(!captureMicrophone)
             }
 
-            Section("Video") {
-                Picker("Frame rate", selection: $frameRate) {
-                    Text("30 fps").tag(30)
-                    Text("60 fps").tag(60)
+            Section(L("settings.recording.video")) {
+                Picker(L("settings.recording.frameRate"), selection: $frameRate) {
+                    Text(L("settings.recording.30fps")).tag(30)
+                    Text(L("settings.recording.60fps")).tag(60)
                 }
                 .pickerStyle(.menu)
 
-                Picker("Codec", selection: $videoCodec) {
-                    Text("H.264").tag("h264")
-                    Text("H.265 / HEVC").tag("h265")
+                Picker(L("settings.recording.codec"), selection: $videoCodec) {
+                    Text(L("settings.recording.h264")).tag("h264")
+                    Text(L("settings.recording.h265")).tag("h265")
                 }
                 .pickerStyle(.menu)
 
-                Picker("Format", selection: $recordingFormat) {
-                    Text("MP4").tag("mp4")
-                    Text("MOV").tag("mov")
+                Picker(L("settings.recording.format"), selection: $recordingFormat) {
+                    Text(L("settings.recording.mp4")).tag("mp4")
+                    Text(L("settings.recording.mov")).tag("mov")
                 }
                 .pickerStyle(.menu)
 
-                Toggle("Show cursor", isOn: $showsCursor)
+                Toggle(L("settings.recording.showCursor"), isOn: $showsCursor)
             }
 
-            Section("Window") {
-                Toggle("Don't hide main window during recording", isOn: $dontHideWindow)
+            Section(L("settings.recording.window")) {
+                Toggle(L("settings.recording.dontHideMainWindow"), isOn: $dontHideWindow)
             }
 
-            Section("Output Folder") {
+            Section(L("settings.recording.outputFolder")) {
                 HStack {
                     Text(outputPath)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("Choose…") {
+                    Button(L("settings.recording.choose")) {
                         let panel = NSOpenPanel()
                         panel.canChooseDirectories = true
                         panel.canChooseFiles = false
@@ -96,7 +96,7 @@ struct RecordingSettingsView: View {
                             outputPath = url.path
                         }
                     }
-                    Button("Reveal") {
+                    Button(L("settings.recording.reveal")) {
                         NSWorkspace.shared.selectFile(nil,
                             inFileViewerRootedAtPath: Settings.shared.recordingOutputDirectory.path)
                     }

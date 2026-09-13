@@ -30,6 +30,8 @@ class SegmentBarView: NSView {
     /// Called when a cut point is double-clicked for deletion.
     var onCutPointDeleted: ((Int) -> Void)?
 
+    var onCutPointDragBegan: (() -> Void)?
+
     private var draggingCutIndex: Int?
     private var dragStartTime: CMTime = .zero
 
@@ -117,6 +119,7 @@ class SegmentBarView: NSView {
                 return
             }
             draggingCutIndex = hitIndex
+            onCutPointDragBegan?()
             return
         }
 

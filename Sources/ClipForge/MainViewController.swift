@@ -229,8 +229,13 @@ class MainViewController: NSViewController {
 
         segmentBar.onCutPointDeleted = { [weak self] index in
             guard let self, index < self.cutPoints.count else { return }
+            self.registerUndo()
             self.cutPoints.remove(at: index)
             self.rebuildSegments()
+        }
+
+        segmentBar.onCutPointDragBegan = { [weak self] in
+            self?.registerUndo()
         }
 
         // Pin to playerView exactly.
@@ -485,10 +490,10 @@ class MainViewController: NSViewController {
         let total = CMTimeGetSeconds(playerController.totalDuration)
         let t = CMTimeGetSeconds(current)
         guard t > 0, t < total else { return }
-
         // Ignore duplicate cut points (within 1ms).
         if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < 0.001 }) { return }
 
+        registerUndo()
         cutPoints.append(current)
         cutPoints.sort { CMTimeGetSeconds($0) < CMTimeGetSeconds($1) }
         rebuildSegments()
@@ -528,6 +533,7 @@ class MainViewController: NSViewController {
 
     private func toggleSegment(at index: Int) {
         guard index >= 0, index < segments.count else { return }
+        registerUndo()
         segments[index].isKept.toggle()
         segmentBar.segments = segments
     }
@@ -904,12 +910,41 @@ class MainViewController: NSViewController {
         volumeSlider.doubleValue = Double(effective)
     }
 
-    private func refreshTimelineUI() {
-        rebuildSegments()
+    private func refreshTimelineUI(rebuild: Bool = true) {
+        if rebuild {
+            rebuildSegments()
+        } else {
+            segmentBar.segments = segments
+            segmentBar.cutPoints = cutPoints
+            segmentBar.totalDuration = playerController.totalDuration
+        }
         segmentBar.clipBoundaries = playerController.clips.dropFirst().map { $0.startOnTimeline }
     }
 
     func resetCropSelection() {
         cropOverlay.resetSelection()
+    }
+
+    private func registerUndo() {
+        guard let undoManager = view.window?.undoManager else { return }
+        let oldCutPoints = cutPoints
+        let oldSegments = segments
+
+        undoManager.registerUndo(withTarget: self) { target in
+            let currentCutPoints = target.cutPoints
+            let currentSegments = target.segments
+
+            // Restore old state directly (don't call rebuildSegments).
+            target.cutPoints = oldCutPoints
+            target.segments = oldSegments
+            target.refreshTimelineUI(rebuild: false)
+
+            // Register the redo.
+            target.view.window?.undoManager?.registerUndo(withTarget: target) { t in
+                t.cutPoints = currentCutPoints
+                t.segments = currentSegments
+                t.refreshTimelineUI(rebuild: false)
+            }
+        }
     }
 }

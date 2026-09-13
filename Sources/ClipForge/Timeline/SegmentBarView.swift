@@ -31,6 +31,7 @@ class SegmentBarView: NSView {
     var onCutPointDeleted: ((Int) -> Void)?
 
     var onCutPointDragBegan: (() -> Void)?
+    var onCutPointAdded: ((CMTime) -> Void)?
 
     private var draggingCutIndex: Int?
     private var dragStartTime: CMTime = .zero
@@ -112,7 +113,7 @@ class SegmentBarView: NSView {
         let total = CMTimeGetSeconds(totalDuration)
         guard total > 0 else { return }
 
-        // Check if a cut point handle was hit first.
+        // 1. Cut point handle hit?
         if let hitIndex = hitTestCutPoint(at: point) {
             if event.clickCount == 2 {
                 onCutPointDeleted?(hitIndex)
@@ -123,8 +124,17 @@ class SegmentBarView: NSView {
             return
         }
 
-        // Otherwise fall back to segment selection.
-        guard !segments.isEmpty else { return }
+        // 2. Plain click on the bar = add a cut point at that time.
+        let t = Double(point.x / bounds.width) * total
+        let time = CMTime(seconds: max(0, min(t, total)), preferredTimescale: 600)
+        onCutPointAdded?(time)
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let total = CMTimeGetSeconds(totalDuration)
+        guard total > 0, !segments.isEmpty else { return }
+
         let clickTime = Double(point.x / bounds.width) * total
 
         var bestIndex = 0

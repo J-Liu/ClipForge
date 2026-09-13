@@ -185,6 +185,11 @@ class MainViewController: NSViewController {
         muteButton.target = self
         muteButton.action = #selector(toggleMute)
 
+        segmentBar.onCutPointAdded = { [weak self] time in
+            self?.addCutPointAt(time)
+        }
+        segmentBar.toolTip = "Click to add a cut point. Right-click a segment to keep/remove it. Double-click a cut point to delete."
+
         view.addSubview(playerView)
         view.addSubview(openButton)
         view.addSubview(playButton)
@@ -965,5 +970,18 @@ class MainViewController: NSViewController {
                 t.refreshTimelineUI(rebuild: false)
             }
         }
+    }
+
+    private func addCutPointAt(_ time: CMTime) {
+        guard playerController.totalDuration.isValid else { return }
+        let total = CMTimeGetSeconds(playerController.totalDuration)
+        let t = CMTimeGetSeconds(time)
+        guard t > 0, t < total else { return }
+        if cutPoints.contains(where: { abs(CMTimeGetSeconds($0) - t) < 0.001 }) { return }
+
+        registerUndo()
+        cutPoints.append(time)
+        cutPoints.sort { CMTimeGetSeconds($0) < CMTimeGetSeconds($1) }
+        rebuildSegments()
     }
 }

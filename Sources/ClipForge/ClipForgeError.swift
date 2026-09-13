@@ -2,6 +2,7 @@
 // Copyright © 2026 Jia Liu
 
 import Foundation
+import AVFoundation
 import ScreenCaptureKit
 
 enum ClipForgeError: LocalizedError {

@@ -809,6 +809,7 @@ class MainViewController: NSViewController {
     private func rebuildRecordModeMenu() {
         recordModeMenu.removeAllItems()
 
+        let style = Settings.shared.recordingButtonStyle
         let modes: [(RecordingMode, String, String)] = [
             (.fullScreen, "Full Screen", "rectangle.inset.filled"),
             (.window, "Window", "macwindow"),
@@ -816,17 +817,30 @@ class MainViewController: NSViewController {
         ]
 
         for (mode, title, iconName) in modes {
-            let item = NSMenuItem(title: title,
-                                  action: #selector(selectRecordingMode(_:)),
-                                  keyEquivalent: "")
+            let action: Selector
+            if style == .directAction {
+                action = #selector(startRecordingWithMode(_:))
+            } else {
+                action = #selector(selectRecordingMode(_:))
+            }
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self
             item.representedObject = mode.rawValue
             item.image = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)
-            if Settings.shared.recordingMode == mode {
+            if style == .modePicker && Settings.shared.recordingMode == mode {
                 item.state = .on
             }
             recordModeMenu.addItem(item)
         }
+    }
+
+    @objc private func startRecordingWithMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let mode = RecordingMode(rawValue: raw) else { return }
+        Settings.shared.recordingMode = mode
+        updateRecordButtonIcon()
+        // Start recording immediately.
+        recordButtonPressed()
     }
 
     private func updateRecordButtonIcon() {

@@ -1,10 +1,12 @@
 import SwiftUI
+import AppKit
 
 struct EditingSettingsView: View {
     @AppStorage("autoPlayOnOpen") private var autoPlayOnOpen = false
     @AppStorage("playbackEndBehavior") private var playbackEndBehavior = "restart"
     @AppStorage("exportResolution") private var exportResolution = "original"
     @AppStorage("exportFrameRate") private var exportFrameRate = "original"
+    @AppStorage("exportFormat") private var exportFormat = "mp4h264"
 
     var body: some View {
         Form {
@@ -21,16 +23,23 @@ struct EditingSettingsView: View {
 
             Section("Export") {
                 Picker("Resolution", selection: $exportResolution) {
-                    Text("Original").tag("original")
-                    Text("1080p").tag("1080p")
-                    Text("720p").tag("720p")
+                    ForEach(ExportResolution.allCases, id: \.rawValue) { r in
+                        Text(r.displayName).tag(r.rawValue)
+                    }
                 }
                 .pickerStyle(.menu)
 
                 Picker("Frame rate", selection: $exportFrameRate) {
-                    Text("Original").tag("original")
-                    Text("30 fps").tag("30")
-                    Text("60 fps").tag("60")
+                    ForEach(ExportFrameRate.allCases, id: \.rawValue) { r in
+                        Text(r.displayName).tag(r.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Picker("Format", selection: $exportFormat) {
+                    ForEach(ExportFormat.allCases, id: \.rawValue) { f in
+                        Text(f.displayName).tag(f.rawValue)
+                    }
                 }
                 .pickerStyle(.menu)
             }

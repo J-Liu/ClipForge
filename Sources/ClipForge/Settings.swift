@@ -134,4 +134,19 @@ class Settings {
             defaults.set(newValue.path, forKey: "recordingOutputDirectory")
         }
     }
+
+    var exportResolution: String {
+        get { defaults.string(forKey: "exportResolution") ?? "original" }
+        set { defaults.set(newValue, forKey: "exportResolution") }
+    }
+
+    var exportFrameRate: String {
+        get { defaults.string(forKey: "exportFrameRate") ?? "original" }
+        set { defaults.set(newValue, forKey: "exportFrameRate") }
+    }
+
+    var exportFormat: String {
+        get { defaults.string(forKey: "exportFormat") ?? "mp4h264" }
+        set { defaults.set(newValue, forKey: "exportFormat") }
+    }
 }

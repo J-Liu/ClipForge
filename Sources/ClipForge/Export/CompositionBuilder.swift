@@ -23,6 +23,9 @@ class CompositionBuilder {
         clips: [VideoClip],
         segments: [Segment],
         cropRect: NSRect?,
+        resolution: ExportResolution,
+        frameRate: ExportFrameRate,
+        format: ExportFormat,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -116,17 +119,17 @@ class CompositionBuilder {
                 }
 
                 // Build the video composition for cropping, if needed.
-                var videoComposition: AVMutableVideoComposition? = nil
-                if let cropRect = cropRect, cropRect.width > 0, cropRect.height > 0 {
-                    videoComposition = makeVideoComposition(
-                        composition: composition,
-                        cropRect: cropRect
-                    )
-                }
+                let videoComposition = makeVideoComposition(
+                    composition: composition,
+                    cropRect: cropRect,
+                    targetSize: resolution.size,
+                    targetFPS: frameRate.value
+                )
 
                 runExport(
                     composition: composition,
                     videoComposition: videoComposition,
+                    format: format,
                     outputURL: outputURL,
                     progress: progress,
                     completion: completion
@@ -142,7 +145,9 @@ class CompositionBuilder {
     /// Build an AVMutableVideoComposition that crops every frame to `cropRect`.
     private static func makeVideoComposition(
         composition: AVMutableComposition,
-        cropRect: NSRect
+        cropRect: NSRect?,
+        targetSize: CGSize?,
+        targetFPS: Int?
     ) -> AVMutableVideoComposition? {
         guard let videoTrack = composition.tracks(withMediaType: .video).first else {
             return nil
@@ -150,22 +155,27 @@ class CompositionBuilder {
 
         let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
 
-        // Crop the full video frame first.
         let fullSize = videoTrack.naturalSize
-        let fullCrop = CGRect(x: 0, y: 0, width: fullSize.width, height: fullSize.height)
-        instruction.setCropRectangle(fullCrop, at: .zero)
+        let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
 
-        // Translate so the desired region lands at (0, 0).
-        // cropRect.origin.y is top-down; CG transform y is bottom-up.
-        let translate = CGAffineTransform(
-            translationX: -cropRect.origin.x,
-            y: -(fullSize.height - cropRect.origin.y - cropRect.height)
-        )
-        instruction.setTransform(translate, at: .zero)
+        if hasCrop, let cropRect = cropRect {
+            let fullCrop = CGRect(x: 0, y: 0, width: fullSize.width, height: fullSize.height)
+            instruction.setCropRectangle(fullCrop, at: .zero)
+            let translate = CGAffineTransform(
+                translationX: -cropRect.origin.x,
+                y: -(fullSize.height - cropRect.origin.y - cropRect.height)
+            )
+            instruction.setTransform(translate, at: .zero)
+        }
 
         let videoComposition = AVMutableVideoComposition()
-        videoComposition.renderSize = cropRect.size
-        videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+
+        // Render size: target resolution wins; otherwise use crop size or full size.
+        let baseSize = hasCrop ? cropRect!.size : fullSize
+        videoComposition.renderSize = targetSize ?? baseSize
+
+        let fps = targetFPS ?? 30
+        videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
 
         let instructionGroup = AVMutableVideoCompositionInstruction()
         instructionGroup.timeRange = CMTimeRange(start: .zero, duration: composition.duration)
@@ -178,6 +188,7 @@ class CompositionBuilder {
     private static func runExport(
         composition: AVMutableComposition,
         videoComposition: AVMutableVideoComposition?,
+        format: ExportFormat,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -187,14 +198,14 @@ class CompositionBuilder {
 
         guard let session = AVAssetExportSession(
             asset: composition,
-            presetName: AVAssetExportPresetHighestQuality
+            presetName: format.exportPreset
         ) else {
             completion(.failure(BuildError.exportFailed(NSError(domain: "ClipForge", code: -1))))
             return
         }
 
         session.outputURL = outputURL
-        session.outputFileType = .mp4
+        session.outputFileType = format.fileType
         session.shouldOptimizeForNetworkUse = true
 
         // Attach the crop composition if present.

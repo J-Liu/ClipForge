@@ -157,4 +157,17 @@ class Settings {
         }
         set { defaults.set(newValue, forKey: "microphoneGain") }
     }
+
+    var recordingFormat: String {
+        get { defaults.string(forKey: "recordingFormat") ?? "mp4" }
+        set { defaults.set(newValue, forKey: "recordingFormat") }
+    }
+
+    var showsCursor: Bool {
+        get {
+            if defaults.object(forKey: "showsCursor") == nil { return true }
+            return defaults.bool(forKey: "showsCursor")
+        }
+        set { defaults.set(newValue, forKey: "showsCursor") }
+    }
 }

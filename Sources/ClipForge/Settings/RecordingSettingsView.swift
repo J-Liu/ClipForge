@@ -9,6 +9,9 @@ struct RecordingSettingsView: View {
     @AppStorage("frameRate") private var frameRate = 30
     @AppStorage("videoCodec") private var videoCodec = "h264"
     @AppStorage("microphoneGain") private var microphoneGain = 1.0
+    @AppStorage("recordingFormat") private var recordingFormat = "mp4"
+    @AppStorage("showsCursor") private var showsCursor = true
+    @AppStorage("dontHideWindow") private var dontHideWindow = false
 
     @State private var outputPath: String = Settings.shared.recordingOutputDirectory.path
 
@@ -32,6 +35,7 @@ struct RecordingSettingsView: View {
             Section("Audio") {
                 Toggle("Capture system audio", isOn: $captureSystemAudio)
                 Toggle("Capture microphone", isOn: $captureMicrophone)
+
                 VStack(alignment: .leading) {
                     HStack {
                         Text("Microphone gain")
@@ -42,6 +46,7 @@ struct RecordingSettingsView: View {
                     }
                     Slider(value: $microphoneGain, in: 0.5...30.0)
                 }
+                .disabled(!captureMicrophone)
             }
 
             Section("Video") {
@@ -56,6 +61,18 @@ struct RecordingSettingsView: View {
                     Text("H.265 / HEVC").tag("h265")
                 }
                 .pickerStyle(.menu)
+
+                Picker("Format", selection: $recordingFormat) {
+                    Text("MP4").tag("mp4")
+                    Text("MOV").tag("mov")
+                }
+                .pickerStyle(.menu)
+
+                Toggle("Show cursor", isOn: $showsCursor)
+            }
+
+            Section("Window") {
+                Toggle("Don't hide main window during recording", isOn: $dontHideWindow)
             }
 
             Section("Output Folder") {

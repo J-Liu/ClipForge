@@ -910,4 +910,8 @@ class MainViewController: NSViewController {
         let clips = playerController.clips
         segmentBar.clipBoundaries = clips.dropFirst().map { $0.startOnTimeline }
     }
+
+    func resetCropSelection() {
+        cropOverlay.resetSelection()
+    }
 }

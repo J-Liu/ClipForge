@@ -59,6 +59,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return nil
             }
 
+            // Escape: reset crop selection, unless a text field or overlay is active.
+            if event.keyCode == 53 {
+                // If a picker overlay is on screen, let it handle Escape.
+                let hasOverlay = NSApp.windows.contains {
+                    $0.level == .screenSaver && $0.isVisible
+                }
+                if hasOverlay { return event }
+
+                // Let text fields handle it.
+                if let responder = NSApp.keyWindow?.firstResponder,
+                   responder is NSTextView {
+                    return event
+                }
+
+                if let vc = NSApp.keyWindow?.contentViewController as? MainViewController {
+                    vc.resetCropSelection()
+                    return nil
+                }
+                return event
+            }
+
             // Map the key to an action.
             switch event.keyCode {
             case 123:   // left arrow

@@ -233,8 +233,9 @@ class RecorderController: NSObject {
     // MARK: - Helpers
 
     private static func makeOutputURL() -> URL {
-        let dir = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
+        let dir = Settings.shared.recordingOutputDirectory
+        // Ensure the directory exists.
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         let name = "ClipForge-\(formatter.string(from: Date())).mp4"

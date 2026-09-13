@@ -119,4 +119,19 @@ class Settings {
         get { defaults.bool(forKey: "isMuted") }
         set { defaults.set(newValue, forKey: "isMuted") }
     }
+
+    var recordingOutputDirectory: URL {
+        get {
+            if let path = defaults.string(forKey: "recordingOutputDirectory") {
+                return URL(fileURLWithPath: path)
+            }
+            // Default: ~/Movies/ClipForge/
+            let movies = FileManager.default.urls(for: .moviesDirectory, in: .userDomainMask).first
+                ?? FileManager.default.temporaryDirectory
+            return movies.appendingPathComponent("ClipForge", isDirectory: true)
+        }
+        set {
+            defaults.set(newValue.path, forKey: "recordingOutputDirectory")
+        }
+    }
 }

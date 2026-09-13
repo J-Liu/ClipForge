@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct RecordingSettingsView: View {
     @AppStorage("recordingMode") private var recordingMode = "fullScreen"
@@ -7,6 +8,8 @@ struct RecordingSettingsView: View {
     @AppStorage("captureMicrophone") private var captureMicrophone = true
     @AppStorage("frameRate") private var frameRate = 30
     @AppStorage("videoCodec") private var videoCodec = "h264"
+
+    @State private var outputPath: String = Settings.shared.recordingOutputDirectory.path
 
     var body: some View {
         Form {
@@ -43,8 +46,32 @@ struct RecordingSettingsView: View {
                 }
                 .pickerStyle(.menu)
             }
+
+            Section("Output Folder") {
+                HStack {
+                    Text(outputPath)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Choose…") {
+                        let panel = NSOpenPanel()
+                        panel.canChooseDirectories = true
+                        panel.canChooseFiles = false
+                        panel.allowsMultipleSelection = false
+                        panel.directoryURL = Settings.shared.recordingOutputDirectory
+                        if panel.runModal() == .OK, let url = panel.url {
+                            Settings.shared.recordingOutputDirectory = url
+                            outputPath = url.path
+                        }
+                    }
+                    Button("Reveal") {
+                        NSWorkspace.shared.selectFile(nil,
+                            inFileViewerRootedAtPath: Settings.shared.recordingOutputDirectory.path)
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
     }
 }
-

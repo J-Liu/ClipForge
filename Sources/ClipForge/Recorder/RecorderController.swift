@@ -2,77 +2,15 @@ import AppKit
 import AVFoundation
 import ScreenCaptureKit
 
-/// Manages a full-screen recording session with system audio.
+/// Manages screen recording sessions (full screen, window, or region).
 class RecorderController: NSObject {
-    private var stream: SCStream?
-    private var recorder: ScreenRecorder?
-    private let sampleQueue = DispatchQueue(label: "ClipForge.recorder.samples")
-    private let mic = MicrophoneCapture()
-    private let highlight = WindowHighlightOverlay()
+    var stream: SCStream?
+    var recorder: ScreenRecorder?
+    let sampleQueue = DispatchQueue(label: "ClipForge.recorder.samples")
+    let mic = MicrophoneCapture()
+    let highlight = WindowHighlightOverlay()
 
-    private(set) var isRecording = false
-
-    /// Start recording the main display with system audio.
-    func startRecording(completion: @escaping (Error?) -> Void) {
-        Task {
-            do {
-                // 1. Get shareable content.
-                let content = try await SCShareableContent.excludingDesktopWindows(
-                    false,
-                    onScreenWindowsOnly: true
-                )
-                guard let display = content.displays.first else {
-                    throw NSError(domain: "ClipForge", code: -1,
-                                  userInfo: [NSLocalizedDescriptionKey: "No display found"])
-                }
-
-                // 2. Build filter for the whole display.
-                let filter = SCContentFilter(display: display, excludingWindows: [])
-
-                // 3. Configure stream.
-                let config = SCStreamConfiguration()
-                config.width = display.width
-                config.height = display.height
-                let fps = Settings.shared.frameRate
-                config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
-                config.queueDepth = 6
-                config.capturesAudio = Settings.shared.captureSystemAudio
-                config.excludesCurrentProcessAudio = true
-                // config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-
-                // 4. Prepare writer.
-                let outputURL = Self.makeOutputURL()
-                let recorder = ScreenRecorder(outputURL: outputURL)
-                try recorder.start(
-                    width: config.width,
-                    height: config.height,
-                    includeSystemAudio: Settings.shared.captureSystemAudio,
-                    includeMicrophone: Settings.shared.captureMicrophone,
-                    codec: Settings.shared.videoCodec
-                )
-                self.recorder = recorder
-
-                // 5. Create and start stream.
-                let stream = SCStream(filter: filter, configuration: config, delegate: self)
-                try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
-                try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
-                try await stream.startCapture()
-                self.stream = stream
-                self.isRecording = true
-
-                if Settings.shared.captureMicrophone {
-                    mic.onSampleBuffer = { [weak self] buffer in
-                        self?.recorder?.appendMicrophone(buffer)
-                    }
-                    try mic.start()
-                }
-
-                await MainActor.run { completion(nil) }
-            } catch {
-                await MainActor.run { completion(error) }
-            }
-        }
-    }
+    var isRecording = false
 
     /// Stop recording and finish writing the file.
     func stopRecording(completion: @escaping (URL?) -> Void) {
@@ -93,7 +31,21 @@ class RecorderController: NSObject {
         }
     }
 
-    private static func screenRect(from scFrame: CGRect) -> NSRect {
+    // MARK: - Shared helpers
+
+    /// Build the output file URL in the configured directory.
+    static func makeOutputURL() -> URL {
+        let dir = Settings.shared.recordingOutputDirectory
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let ext = Settings.shared.recordingFormat == "mov" ? "mov" : "mp4"
+        let name = "ClipForge-\(formatter.string(from: Date())).\(ext)"
+        return dir.appendingPathComponent(name)
+    }
+
+    /// Convert an SCWindow frame (top-left origin) to AppKit screen coords.
+    static func screenRect(from scFrame: CGRect) -> NSRect {
         guard let mainScreen = NSScreen.screens.first else { return .zero }
         let screenHeight = mainScreen.frame.height
         return NSRect(
@@ -104,142 +56,25 @@ class RecorderController: NSObject {
         )
     }
 
-    /// Start recording a single window.
-    func startWindowRecording(window: SCWindow, completion: @escaping (Error?) -> Void) {
-        Task {
-            do {
-                let filter = SCContentFilter(desktopIndependentWindow: window)
-
-                let config = SCStreamConfiguration()
-                config.width = Int(window.frame.width) * 2
-                config.height = Int(window.frame.height) * 2
-                let fps = Settings.shared.frameRate
-                config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
-                config.queueDepth = 6
-                config.capturesAudio = Settings.shared.captureSystemAudio
-                config.excludesCurrentProcessAudio = true
-
-                let outputURL = Self.makeOutputURL()
-                let recorder = ScreenRecorder(outputURL: outputURL)
-                try recorder.start(
-                    width: config.width,
-                    height: config.height,
-                    includeSystemAudio: Settings.shared.captureSystemAudio,
-                    includeMicrophone: Settings.shared.captureMicrophone,
-                    codec: Settings.shared.videoCodec
-                )
-                self.recorder = recorder
-
-                let stream = SCStream(filter: filter, configuration: config, delegate: self)
-                try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
-                try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
-                try await stream.startCapture()
-                self.stream = stream
-                self.isRecording = true
-
-                if Settings.shared.captureMicrophone {
-                    mic.onSampleBuffer = { [weak self] buffer in
-                        self?.recorder?.appendMicrophone(buffer)
-                    }
-                    try mic.start()
-                }
-
-                // Show the highlight around the target window.
-                let screenRect = Self.screenRect(from: window.frame)
-                await MainActor.run {
-                    self.highlight.show(windowID: window.windowID, initialFrame: screenRect)
-                }
-
-                await MainActor.run { completion(nil) }
-            } catch {
-                await MainActor.run { completion(error) }
-            }
+    /// Start the microphone if the user enabled it.
+    func startMicrophoneIfNeeded() throws {
+        guard Settings.shared.captureMicrophone else { return }
+        mic.onSampleBuffer = { [weak self] buffer in
+            self?.recorder?.appendMicrophone(buffer)
         }
+        try mic.start()
     }
 
-    func startRegionRecording(region: NSRect, completion: @escaping (Error?) -> Void) {
-        Task {
-            do {
-                let content = try await SCShareableContent.excludingDesktopWindows(
-                    false, onScreenWindowsOnly: true
-                )
-                guard let display = content.displays.first else {
-                    throw NSError(domain: "ClipForge", code: -1,
-                                  userInfo: [NSLocalizedDescriptionKey: "No display"])
-                }
-
-                let filter = SCContentFilter(display: display, excludingWindows: [])
-
-                // Convert AppKit screen rect to display-relative coordinates.
-                // AppKit: y from bottom. SCStream sourceRect: y from top.
-                guard let targetScreen = NSScreen.screens.first(where: { $0.frame.intersects(region) }) else {
-                    throw NSError(domain: "ClipForge", code: -1,
-                                  userInfo: [NSLocalizedDescriptionKey: "No screen for region"])
-                }
-                let screenHeight = targetScreen.frame.height
-                let displayRelativeX = region.origin.x - targetScreen.frame.origin.x
-                let displayRelativeY = screenHeight - region.origin.y - region.height
-
-                let config = SCStreamConfiguration()
-                config.sourceRect = CGRect(
-                    x: displayRelativeX,
-                    y: displayRelativeY,
-                    width: region.width,
-                    height: region.height
-                )
-                config.width = Int(region.width)
-                config.height = Int(region.height)
-                let fps = Settings.shared.frameRate
-                config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
-                config.queueDepth = 6
-                config.capturesAudio = Settings.shared.captureSystemAudio
-                config.excludesCurrentProcessAudio = true
-
-                let outputURL = Self.makeOutputURL()
-                let recorder = ScreenRecorder(outputURL: outputURL)
-                try recorder.start(
-                    width: config.width,
-                    height: config.height,
-                    includeSystemAudio: Settings.shared.captureSystemAudio,
-                    includeMicrophone: Settings.shared.captureMicrophone,
-                    codec: Settings.shared.videoCodec
-                )
-                self.recorder = recorder
-
-                let stream = SCStream(filter: filter, configuration: config, delegate: self)
-                try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: sampleQueue)
-                try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
-                try await stream.startCapture()
-                self.stream = stream
-                self.isRecording = true
-
-                if Settings.shared.captureMicrophone {
-                    mic.onSampleBuffer = { [weak self] buffer in
-                        self?.recorder?.appendMicrophone(buffer)
-                    }
-                    try mic.start()
-                }
-
-                await MainActor.run {
-                    self.highlight.showFixed(around: region)
-                    completion(nil)
-                }
-            } catch {
-                await MainActor.run { completion(error) }
-            }
-        }
-    }
-
-    // MARK: - Helpers
-
-    private static func makeOutputURL() -> URL {
-        let dir = Settings.shared.recordingOutputDirectory
-        // Ensure the directory exists.
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        let name = "ClipForge-\(formatter.string(from: Date())).mp4"
-        return dir.appendingPathComponent(name)
+    /// Build an SCStreamConfiguration with the common settings.
+    func makeBaseConfig() -> SCStreamConfiguration {
+        let config = SCStreamConfiguration()
+        let fps = Settings.shared.frameRate
+        config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
+        config.queueDepth = 6
+        config.capturesAudio = Settings.shared.captureSystemAudio
+        config.excludesCurrentProcessAudio = true
+        config.showsCursor = Settings.shared.showsCursor
+        return config
     }
 }
 

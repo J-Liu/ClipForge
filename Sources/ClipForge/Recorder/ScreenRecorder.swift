@@ -23,7 +23,8 @@ class ScreenRecorder {
                includeMicrophone: Bool,
                codec: String) throws {
         try? FileManager.default.removeItem(at: outputURL)
-        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
+        let fileType: AVFileType = Settings.shared.recordingFormat == "mov" ? .mov : .mp4
+        let writer = try AVAssetWriter(outputURL: outputURL, fileType: fileType)
         self.assetWriter = writer
 
         let codecType: AVVideoCodecType

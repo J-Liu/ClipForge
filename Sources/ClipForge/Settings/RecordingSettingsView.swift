@@ -8,6 +8,7 @@ struct RecordingSettingsView: View {
     @AppStorage("captureMicrophone") private var captureMicrophone = true
     @AppStorage("frameRate") private var frameRate = 30
     @AppStorage("videoCodec") private var videoCodec = "h264"
+    @AppStorage("microphoneGain") private var microphoneGain = 1.0
 
     @State private var outputPath: String = Settings.shared.recordingOutputDirectory.path
 
@@ -31,6 +32,16 @@ struct RecordingSettingsView: View {
             Section("Audio") {
                 Toggle("Capture system audio", isOn: $captureSystemAudio)
                 Toggle("Capture microphone", isOn: $captureMicrophone)
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text("Microphone gain")
+                        Spacer()
+                        Text(String(format: "%.1f×", microphoneGain))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $microphoneGain, in: 0.5...30.0)
+                }
             }
 
             Section("Video") {

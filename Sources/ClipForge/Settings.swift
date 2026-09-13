@@ -149,4 +149,12 @@ class Settings {
         get { defaults.string(forKey: "exportFormat") ?? "mp4h264" }
         set { defaults.set(newValue, forKey: "exportFormat") }
     }
+
+    var microphoneGain: Float {
+        get {
+            if defaults.object(forKey: "microphoneGain") == nil { return 1.0 }
+            return defaults.float(forKey: "microphoneGain")
+        }
+        set { defaults.set(newValue, forKey: "microphoneGain") }
+    }
 }

@@ -104,15 +104,59 @@ class ScreenRecorder {
     func appendMicrophone(_ sampleBuffer: CMSampleBuffer) {
         guard let writer = assetWriter, writer.status == .writing, isSessionStarted else { return }
         if let input = micInput, input.isReadyForMoreMediaData {
-            let ok = input.append(sampleBuffer)
+            let gain = Settings.shared.microphoneGain
+            let processed: CMSampleBuffer
+            if abs(gain - 1.0) < 0.01 {
+                processed = sampleBuffer
+            } else {
+                processed = Self.applyGain(to: sampleBuffer, gain: gain) ?? sampleBuffer
+            }
+            let ok = input.append(processed)
             if !ok {
                 print("mic append failed: \(String(describing: writer.error))")
             }
         }
+    }
 
-        let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer)!
-        let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)!
-        print("sampleRate: \(asbd.pointee.mSampleRate), channels: \(asbd.pointee.mChannelsPerFrame), bitsPerChannel: \(asbd.pointee.mBitsPerChannel), isFloat: \((asbd.pointee.mFormatFlags & kAudioFormatFlagIsFloat) != 0), isSignedInt: \((asbd.pointee.mFormatFlags & kAudioFormatFlagIsSignedInteger) != 0)")
+    private static func applyGain(to sampleBuffer: CMSampleBuffer, gain: Float) -> CMSampleBuffer? {
+        guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer),
+              let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc),
+              asbd.pointee.mFormatID == kAudioFormatLinearPCM,
+              (asbd.pointee.mFormatFlags & kAudioFormatFlagIsFloat) != 0 else {
+            return nil
+        }
+
+        // Get the audio buffer list.
+        var audioBufferList = AudioBufferList()
+        var blockBuffer: CMBlockBuffer?
+        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+            sampleBuffer,
+            bufferListSizeNeededOut: nil,
+            bufferListOut: &audioBufferList,
+            bufferListSize: MemoryLayout<AudioBufferList>.size,
+            blockBufferAllocator: kCFAllocatorDefault,
+            blockBufferMemoryAllocator: kCFAllocatorDefault,
+            flags: 0,
+            blockBufferOut: &blockBuffer
+        )
+        guard status == noErr else { return nil }
+
+        // Apply gain in-place on the buffer list. The buffers are owned by the
+        // retained block buffer, so we can mutate them here.
+        let buffers = UnsafeMutableAudioBufferListPointer(&audioBufferList)
+        for buffer in buffers {
+            guard let data = buffer.mData else { continue }
+            let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+            let ptr = data.assumingMemoryBound(to: Float.self)
+            for i in 0..<count {
+                let v = ptr[i] * gain
+                ptr[i] = max(-1.0, min(1.0, v))
+            }
+        }
+
+        // The original sample buffer's data has been modified in place.
+        // Reuse the same sample buffer — the writer will read the modified data.
+        return sampleBuffer
     }
 
     func finish(completion: @escaping (URL?) -> Void) {

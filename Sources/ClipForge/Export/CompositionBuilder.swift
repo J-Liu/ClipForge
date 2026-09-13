@@ -158,21 +158,51 @@ class CompositionBuilder {
         let fullSize = videoTrack.naturalSize
         let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
 
+        // The source region we actually use (crop or full).
+        let sourceSize = hasCrop ? cropRect!.size : fullSize
+
+        // Build the transform: first translate the crop region to (0,0),
+        // then scale to fit the target size, then center.
+        var transform = CGAffineTransform.identity
+
         if hasCrop, let cropRect = cropRect {
-            let fullCrop = CGRect(x: 0, y: 0, width: fullSize.width, height: fullSize.height)
-            instruction.setCropRectangle(fullCrop, at: .zero)
-            let translate = CGAffineTransform(
-                translationX: -cropRect.origin.x,
-                y: -(fullSize.height - cropRect.origin.y - cropRect.height)
-            )
-            instruction.setTransform(translate, at: .zero)
+            // Crop rect is in top-left origin coordinates; CG transform is bottom-left.
+            let translateY = -(fullSize.height - cropRect.origin.y - cropRect.height)
+            transform = CGAffineTransform(translationX: -cropRect.origin.x, y: translateY)
         }
 
         let videoComposition = AVMutableVideoComposition()
 
-        // Render size: target resolution wins; otherwise use crop size or full size.
-        let baseSize = hasCrop ? cropRect!.size : fullSize
-        videoComposition.renderSize = targetSize ?? baseSize
+        if let targetSize = targetSize {
+            // Compute the scale to fit source into target, keeping aspect ratio.
+            let srcAspect = sourceSize.width / sourceSize.height
+            let dstAspect = targetSize.width / targetSize.height
+
+            let scale: CGFloat
+            if srcAspect > dstAspect {
+                // Source is wider — fit by width.
+                scale = targetSize.width / sourceSize.width
+            } else {
+                // Source is taller — fit by height.
+                scale = targetSize.height / sourceSize.height
+            }
+
+            let scaledWidth = sourceSize.width * scale
+            let scaledHeight = sourceSize.height * scale
+            let offsetX = (targetSize.width - scaledWidth) / 2
+            let offsetY = (targetSize.height - scaledHeight) / 2
+
+            // Compose: translate crop → scale → translate to center.
+            let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
+            let centerTransform = CGAffineTransform(translationX: offsetX, y: offsetY)
+            transform = transform.concatenating(scaleTransform).concatenating(centerTransform)
+
+            videoComposition.renderSize = targetSize
+        } else {
+            videoComposition.renderSize = sourceSize
+        }
+
+        instruction.setTransform(transform, at: .zero)
 
         let fps = targetFPS ?? 30
         videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))

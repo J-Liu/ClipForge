@@ -9,6 +9,8 @@ class ScreenRecorder {
     private var micInput: AVAssetWriterInput?
     private var isSessionStarted = false
     private let outputURL: URL
+    private var lastCompleteBuffer: CMSampleBuffer?
+    private var lastWrittenTime: CMTime = .zero
 
     init(outputURL: URL) {
         self.outputURL = outputURL
@@ -122,5 +124,122 @@ class ScreenRecorder {
                 completion(writer.status == .completed ? self.outputURL : nil)
             }
         }
+    }
+
+    /// Append a complete frame and remember it for idle-frame duplication.
+    func appendCompleteFrame(_ sampleBuffer: CMSampleBuffer) {
+        lastCompleteBuffer = sampleBuffer
+        lastWrittenTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        append(sampleBuffer, ofType: .screen)
+    }
+
+    /// Duplicate the last complete frame with a new timestamp, to keep the frame rate stable.
+    func appendIdleFrame(atTime time: CMTime) {
+        guard let last = lastCompleteBuffer,
+              let writer = assetWriter,
+              writer.status == .writing,
+              isSessionStarted else { return }
+
+        // Only duplicate if enough time has passed since the last write.
+        let elapsed = CMTimeGetSeconds(CMTimeSubtract(time, lastWrittenTime))
+        let frameInterval = 1.0 / Double(Settings.shared.frameRate)
+        guard elapsed >= frameInterval * 0.9 else { return }
+
+        guard let newBuffer = Self.duplicateFrame(from: last, at: time) else { return }
+
+        if let input = videoInput, input.isReadyForMoreMediaData {
+            let ok = input.append(newBuffer)
+            if !ok {
+                print("idle append failed: \(String(describing: writer.error))")
+            }
+        }
+
+        lastWrittenTime = time
+    }
+
+    /// Deep-copy a frame's pixel buffer and re-wrap it with a new presentation time.
+    private static func duplicateFrame(from buffer: CMSampleBuffer, at time: CMTime) -> CMSampleBuffer? {
+        guard let imageBuffer = CMSampleBufferGetImageBuffer(buffer) else { return nil }
+
+        let width = CVPixelBufferGetWidth(imageBuffer)
+        let height = CVPixelBufferGetHeight(imageBuffer)
+        let format = CVPixelBufferGetPixelFormatType(imageBuffer)
+
+        var newPixelBuffer: CVPixelBuffer?
+        let attrs: [String: Any] = [
+            kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any]
+        ]
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            format,
+            attrs as CFDictionary,
+            &newPixelBuffer
+        )
+        guard status == kCVReturnSuccess, let newPB = newPixelBuffer else { return nil }
+
+        // Lock both buffers.
+        CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+        CVPixelBufferLockBaseAddress(newPB, [])
+
+        let planeCount = CVPixelBufferGetPlaneCount(imageBuffer)
+        if planeCount == 0 {
+            // Single-plane format.
+            if let src = CVPixelBufferGetBaseAddress(imageBuffer),
+               let dst = CVPixelBufferGetBaseAddress(newPB) {
+                let srcBytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+                let dstBytesPerRow = CVPixelBufferGetBytesPerRow(newPB)
+                let bytesToCopy = min(srcBytesPerRow, dstBytesPerRow)
+                for row in 0..<height {
+                    memcpy(dst.advanced(by: row * dstBytesPerRow),
+                           src.advanced(by: row * srcBytesPerRow),
+                           bytesToCopy)
+                }
+            }
+        } else {
+            // Multi-plane format (e.g. 420YpCbCr8BiPlanar).
+            for plane in 0..<planeCount {
+                guard let src = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, plane),
+                      let dst = CVPixelBufferGetBaseAddressOfPlane(newPB, plane) else { continue }
+                let srcBytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, plane)
+                let dstBytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(newPB, plane)
+                let planeHeight = CVPixelBufferGetHeightOfPlane(imageBuffer, plane)
+                let bytesToCopy = min(srcBytesPerRow, dstBytesPerRow)
+                for row in 0..<planeHeight {
+                    memcpy(dst.advanced(by: row * dstBytesPerRow),
+                           src.advanced(by: row * srcBytesPerRow),
+                           bytesToCopy)
+                }
+            }
+        }
+
+        CVPixelBufferUnlockBaseAddress(newPB, [])
+        CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
+
+        // Build the CMSampleBuffer.
+        var formatDesc: CMFormatDescription?
+        CMVideoFormatDescriptionCreateForImageBuffer(
+            allocator: kCFAllocatorDefault,
+            imageBuffer: newPB,
+            formatDescriptionOut: &formatDesc
+        )
+        guard let fd = formatDesc else { return nil }
+
+        var timing = CMSampleTimingInfo(
+            duration: CMSampleBufferGetDuration(buffer),
+            presentationTimeStamp: time,
+            decodeTimeStamp: .invalid
+        )
+
+        var newBuffer: CMSampleBuffer?
+        let createStatus = CMSampleBufferCreateReadyWithImageBuffer(
+            allocator: kCFAllocatorDefault,
+            imageBuffer: newPB,
+            formatDescription: fd,
+            sampleTiming: &timing,
+            sampleBufferOut: &newBuffer
+        )
+        return createStatus == noErr ? newBuffer : nil
     }
 }

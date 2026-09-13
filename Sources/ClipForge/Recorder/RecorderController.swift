@@ -249,28 +249,32 @@ extension RecorderController: SCStreamOutput {
     func stream(_ stream: SCStream,
                 didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
                 of type: SCStreamOutputType) {
-        // Audio passes straight through.
         guard type == .screen else {
             recorder?.append(sampleBuffer, ofType: type)
             return
         }
 
-        // Only forward complete screen frames.
         guard let attachmentsArray = CMSampleBufferGetSampleAttachmentsArray(
             sampleBuffer, createIfNecessary: false
         ) as? [[SCStreamFrameInfo: Any]],
-        let attachments = attachmentsArray.first else {
+        let attachments = attachmentsArray.first,
+        let statusRawValue = attachments[.status] as? Int,
+        let status = SCFrameStatus(rawValue: statusRawValue) else {
             return
         }
 
-        guard let statusRawValue = attachments[.status] as? Int,
-              let status = SCFrameStatus(rawValue: statusRawValue),
-              status == .complete else {
-            // print("Skipping incomplete frame")
-            return
-        }
+        let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
 
-        recorder?.append(sampleBuffer, ofType: type)
+        switch status {
+        case .complete:
+            recorder?.appendCompleteFrame(sampleBuffer)
+        case .idle, .blank:
+            recorder?.appendIdleFrame(atTime: pts)
+        case .suspended:
+            break
+        default:
+            break
+        }
     }
 }
 

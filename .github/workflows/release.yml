@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build app bundle
+        run: |
+          chmod +x build_app.sh
+          ./build_app.sh
+
+      - name: Verify app bundle
+        run: |
+          ls -la build/
+          test -d build/ClipForge.app
+
+      - name: Package
+        run: |
+          cd build
+          zip -r ClipForge.zip ClipForge.app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ClipForge.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

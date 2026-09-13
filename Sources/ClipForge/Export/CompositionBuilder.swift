@@ -4,11 +4,33 @@ import CoreMedia
 /// Builds an AVComposition from kept segments across multiple video sources.
 class CompositionBuilder {
 
-    enum BuildError: Error {
+    enum BuildError: LocalizedError {
         case noKeptSegments
         case trackLoadFailed
-        case exportFailed(Error)
+        case exportFailed(String)
         case exportCancelled
+
+        var errorDescription: String? {
+            switch self {
+            case .noKeptSegments: return "Nothing to export"
+            case .trackLoadFailed: return "Failed to load video track"
+            case .exportFailed(let msg): return "Export failed: \(msg)"
+            case .exportCancelled: return "Export cancelled"
+            }
+        }
+
+        var recoverySuggestion: String? {
+            switch self {
+            case .noKeptSegments:
+                return "Keep at least one segment before exporting."
+            case .trackLoadFailed:
+                return "The file may be corrupted or use an unsupported codec."
+            case .exportFailed:
+                return "Try a different output location or a lower resolution."
+            case .exportCancelled:
+                return nil
+            }
+        }
     }
 
     /// Export kept segments to the given output URL.
@@ -230,7 +252,7 @@ class CompositionBuilder {
             asset: composition,
             presetName: format.exportPreset
         ) else {
-            completion(.failure(BuildError.exportFailed(NSError(domain: "ClipForge", code: -1))))
+            completion(.failure(BuildError.exportFailed("Could not create export session")))
             return
         }
 
@@ -259,12 +281,10 @@ class CompositionBuilder {
                     completion(.failure(BuildError.exportCancelled))
                 case .failed:
                     completion(.failure(BuildError.exportFailed(
-                        session.error ?? NSError(domain: "ClipForge", code: -1)
+                        session.error?.localizedDescription ?? "Unknown error"
                     )))
                 default:
-                    completion(.failure(BuildError.exportFailed(
-                        NSError(domain: "ClipForge", code: -1)
-                    )))
+                    completion(.failure(BuildError.exportFailed("Could not create export session")))
                 }
             }
         }

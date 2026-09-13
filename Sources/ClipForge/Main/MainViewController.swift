@@ -114,6 +114,20 @@ class MainViewController: NSViewController {
             )
         }
 
+        recorder.onUnexpectedStop = { [weak self] error in
+            guard let self else { return }
+            self.showError(ClipForgeError.from(error))
+            self.statusBar.setState(.idle)
+            self.recordButton.isEnabled = true
+            // Try to save whatever was recorded.
+            self.recorder.stopRecording { url in
+                if let url = url {
+                    self.showAlert(title: "Recording Saved (partial)",
+                                   message: url.path)
+                }
+            }
+        }
+
         setupCallbacks()
     }
 
@@ -369,16 +383,53 @@ class MainViewController: NSViewController {
         view.window?.makeFirstResponder(playerView)
     }
 
-    func showAlert(title: String, message: String) {
+    func showAlert(title: String, message: String, recovery: String? = nil) {
         let alert = NSAlert()
         alert.messageText = title
-        alert.informativeText = message
+        var info = message
+        if let recovery = recovery, !recovery.isEmpty {
+            if !info.isEmpty {
+                info += "\n\n"
+            }
+            info += recovery
+        }
+        alert.informativeText = info
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         if let window = view.window {
             alert.beginSheetModal(for: window, completionHandler: nil)
         } else {
             alert.runModal()
+        }
+    }
+
+    func showError(_ error: Error) {
+        let cf = ClipForgeError.from(error)
+        let alert = NSAlert()
+        alert.messageText = cf.errorDescription ?? "Error"
+        alert.informativeText = cf.recoverySuggestion ?? ""
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+
+        // Special case: permission errors offer a shortcut to System Settings.
+        switch cf {
+        case .screenRecordingPermissionDenied, .microphonePermissionDenied:
+            alert.addButton(withTitle: "Open System Settings")
+        default:
+            break
+        }
+
+        let handler: (NSApplication.ModalResponse) -> Void = { response in
+            if response == .alertSecondButtonReturn {
+                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+                NSWorkspace.shared.open(url)
+            }
+        }
+
+        if let window = view.window {
+            alert.beginSheetModal(for: window, completionHandler: handler)
+        } else {
+            handler(alert.runModal())
         }
     }
 

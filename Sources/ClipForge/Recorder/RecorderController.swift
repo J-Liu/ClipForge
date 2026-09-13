@@ -11,6 +11,7 @@ class RecorderController: NSObject {
     let highlight = WindowHighlightOverlay()
 
     var isRecording = false
+    var onUnexpectedStop: ((Error) -> Void)?
 
     /// Stop recording and finish writing the file.
     func stopRecording(completion: @escaping (URL?) -> Void) {
@@ -20,7 +21,11 @@ class RecorderController: NSObject {
             return
         }
         Task {
-            try? await stream.stopCapture()
+            do {
+                try await stream.stopCapture()
+            } catch {
+                NSLog("stopCapture failed: \(error)")
+            }
             mic.stop()
             self.stream = nil
             self.isRecording = false
@@ -119,5 +124,6 @@ extension RecorderController: SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
         NSLog("SCStream stopped with error: \(error)")
         isRecording = false
+        onUnexpectedStop?(error)
     }
 }

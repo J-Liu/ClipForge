@@ -44,7 +44,9 @@ extension RecorderController {
 
                 await MainActor.run { completion(nil) }
             } catch {
-                await MainActor.run { completion(error) }
+                await MainActor.run {
+                    completion(ClipForgeError.from(error))
+                }
             }
         }
     }

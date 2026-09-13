@@ -61,11 +61,9 @@ extension MainViewController {
                     self?.showAlert(title: "Export Complete",
                                     message: outputURL.lastPathComponent)
                 case .failure(let error):
-                    self?.showAlert(title: "Export Failed",
-                                    message: error.localizedDescription)
+                    self?.showError(error)
                 }
             }
         )
     }
 }
-

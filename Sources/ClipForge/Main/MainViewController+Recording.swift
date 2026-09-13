@@ -14,7 +14,7 @@ extension MainViewController {
         recorder.startRecording { [weak self] error in
             guard let self else { return }
             if let error = error {
-                self.showAlert(title: "Recording Failed", message: error.localizedDescription)
+                self.showError(error)
                 self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
                 return
@@ -96,7 +96,7 @@ extension MainViewController {
         recorder.startWindowRecording(window: window) { [weak self] error in
             guard let self else { return }
             if let error = error {
-                self.showAlert(title: "Recording Failed", message: error.localizedDescription)
+                self.showError(error)
                 self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
                 return
@@ -127,7 +127,7 @@ extension MainViewController {
         recorder.startRegionRecording(region: region) { [weak self] error in
             guard let self else { return }
             if let error = error {
-                self.showAlert(title: "Recording Failed", message: error.localizedDescription)
+                self.showError(error)
                 self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
                 return
@@ -208,4 +208,3 @@ extension MainViewController {
         setRecordingMode(mode)
     }
 }
-

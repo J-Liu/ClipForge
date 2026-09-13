@@ -35,7 +35,7 @@ A native macOS screen recorder and precise video editor, built with pure AppKit 
 
 ## Installation
 
-1. Download the latest `ClipForge.zip` from the [Releases](https://github.com/J-Liu/PixAI/releases) page.
+1. Download the latest `ClipForge.zip` from the [Releases](https://github.com/J-Liu/ClipForge/releases) page.
 2. Unzip and drag `ClipForge.app` to `/Applications`.
 3. Because the app is not code-signed, macOS Gatekeeper will block it on first launch.
 
@@ -60,8 +60,8 @@ After doing this once, the app opens normally.
 ## Build from Source
 
 ```bash
-git clone https://github.com/J-Liu/PixAI.git
-cd PixAI
+git clone https://github.com/J-Liu/ClipForge.git
+cd ClipForge
 ./build_app.sh
 open build/ClipForge.app
 ```
@@ -70,7 +70,7 @@ Requires Swift 5.7+ and Xcode command line tools.
 
 ## Project Home
 
-https://github.com/J-Liu/PixAI
+https://github.com/J-Liu/ClipForge
 
 ## License
 

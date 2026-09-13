@@ -47,7 +47,7 @@ class AppActions {
     }
 
     @objc func checkForUpdates() {
-        if let url = URL(string: "https://github.com/J-Liu/PixAI/releases") {
+        if let url = URL(string: "https://github.com/J-Liu/ClipForge/releases") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -70,10 +70,10 @@ class AppActions {
 
     @objc func showAbout() {
         let credits = NSMutableAttributedString(
-            string: "https://github.com/J-Liu/PixAI",
+            string: "https://github.com/J-Liu/ClipForge",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11),
-                .link: "https://github.com/J-Liu/PixAI"
+                .link: "https://github.com/J-Liu/ClipForge"
             ]
         )
         NSApp.orderFrontStandardAboutPanel(options: [

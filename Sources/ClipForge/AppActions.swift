@@ -64,4 +64,17 @@ class AppActions {
     @objc func toggleMute() { mainViewController?.toggleMuteAction() }
     @objc func increaseVolume() { mainViewController?.adjustVolume(by: 0.1) }
     @objc func decreaseVolume() { mainViewController?.adjustVolume(by: -0.1) }
+
+    @objc func showAbout() {
+        let credits = NSMutableAttributedString(
+            string: "https://github.com/J-Liu/PixAI",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .link: "https://github.com/J-Liu/PixAI"
+            ]
+        )
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .credits: credits
+        ])
+    }
 }

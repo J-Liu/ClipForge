@@ -109,6 +109,10 @@ class ScreenRecorder {
                 print("mic append failed: \(String(describing: writer.error))")
             }
         }
+
+        let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer)!
+        let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)!
+        print("sampleRate: \(asbd.pointee.mSampleRate), channels: \(asbd.pointee.mChannelsPerFrame), bitsPerChannel: \(asbd.pointee.mBitsPerChannel), isFloat: \((asbd.pointee.mFormatFlags & kAudioFormatFlagIsFloat) != 0), isSignedInt: \((asbd.pointee.mFormatFlags & kAudioFormatFlagIsSignedInteger) != 0)")
     }
 
     func finish(completion: @escaping (URL?) -> Void) {

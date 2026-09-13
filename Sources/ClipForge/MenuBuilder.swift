@@ -23,9 +23,11 @@ class MenuBuilder {
         let menu = NSMenu()
         let appName = "ClipForge"
 
-        menu.addItem(withTitle: "About \(appName)",
-                     action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
-                     keyEquivalent: "")
+        let about = NSMenuItem(title: "About \(appName)",
+                               action: #selector(AppActions.showAbout),
+                               keyEquivalent: "")
+        about.target = AppActions.shared
+        menu.addItem(about)
 
         let updates = NSMenuItem(title: "Check for Updates…",
                                  action: #selector(AppActions.checkForUpdates),

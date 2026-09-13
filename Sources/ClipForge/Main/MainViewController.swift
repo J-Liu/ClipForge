@@ -59,6 +59,7 @@ class MainViewController: NSViewController {
         let b = NSButton(image: NSImage(systemSymbolName: "record.circle",
                                         accessibilityDescription: "Record")!,
                          target: nil, action: nil)
+        b.title = ""
         b.bezelStyle = .rounded
         b.imagePosition = .imageLeading
         return b
@@ -195,6 +196,7 @@ class MainViewController: NSViewController {
                                   action: #selector(showRecordModeMenu))
         menuButton.isBordered = false
         menuButton.translatesAutoresizingMaskIntoConstraints = false
+        menuButton.toolTip = "Choose recording mode"
 
         volumeSlider.target = self
         volumeSlider.action = #selector(volumeChanged)
@@ -207,7 +209,20 @@ class MainViewController: NSViewController {
         segmentBar.onCutPointAdded = { [weak self] time in
             self?.addCutPointAt(time)
         }
+
+        openButton.toolTip = "Open video (⌘O)"
+        playButton.toolTip = "Play / Pause (Space)"
+        slider.toolTip = "Drag to scrub through the timeline"
+        setButton.toolTip = "Add cut point at the current position"
+        exportButton.toolTip = "Export (⌘E)"
+        recordButton.toolTip = "Start recording (⌘R)"
+        menuButton.toolTip = "Choose recording mode"
+        volumeSlider.toolTip = "Volume"
+        muteButton.toolTip = "Mute / Unmute (⇧⌘M)"
+        dontHideCheckbox.toolTip = "Keep the main window visible while recording"
+        cropOverlay.toolTip = "Drag to crop. Press Esc to reset."
         segmentBar.toolTip = "Click to add a cut point. Right-click a segment to keep/remove it. Double-click a cut point to delete."
+
 
         view.addSubview(playerView)
         view.addSubview(openButton)

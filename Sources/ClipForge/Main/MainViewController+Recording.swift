@@ -186,6 +186,7 @@ extension MainViewController {
         case .region:     name = "rectangle.dashed"
         }
         recordButton.image = NSImage(systemSymbolName: name, accessibilityDescription: "Record")
+        recordButton.title = ""
     }
 
     @objc func showRecordModeMenu() {

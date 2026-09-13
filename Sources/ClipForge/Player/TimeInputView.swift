@@ -61,6 +61,7 @@ class TimeInputView: NSView {
         goButton.target = self
         goButton.action = #selector(commit)
         goButton.bezelStyle = .rounded
+        goButton.toolTip = "Seek to the entered time"
 
         let stack = NSStackView(views: [
             hoursField, colon1,

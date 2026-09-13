@@ -209,19 +209,22 @@ class MenuBuilder {
 
         let fullScreen = NSMenuItem(title: "Full Screen",
                                     action: #selector(AppActions.setModeFullScreen),
-                                    keyEquivalent: "")
+                                    keyEquivalent: "1")
+        fullScreen.keyEquivalentModifierMask = [.control]
         fullScreen.target = AppActions.shared
         menu.addItem(fullScreen)
 
         let window = NSMenuItem(title: "Window",
                                 action: #selector(AppActions.setModeWindow),
-                                keyEquivalent: "")
+                                keyEquivalent: "2")
+        window.keyEquivalentModifierMask = [.control]
         window.target = AppActions.shared
         menu.addItem(window)
 
         let region = NSMenuItem(title: "Region",
                                 action: #selector(AppActions.setModeRegion),
-                                keyEquivalent: "")
+                                keyEquivalent: "3")
+        region.keyEquivalentModifierMask = [.control]
         region.target = AppActions.shared
         menu.addItem(region)
 

@@ -32,6 +32,9 @@ class PlayerController {
         return result
     }
 
+    /// Called on the main thread after all clip durations are loaded.
+    var onClipsLoaded: (() -> Void)?
+
     deinit {
         removeObservers()
     }
@@ -67,6 +70,7 @@ class PlayerController {
                 self.totalDuration = finalTotal
                 self.playItem(at: 0, seekTo: .zero)
                 self.addObservers()
+                self.onClipsLoaded?()
             }
         }
     }

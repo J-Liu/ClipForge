@@ -33,6 +33,11 @@ class SegmentBarView: NSView {
     private var draggingCutIndex: Int?
     private var dragStartTime: CMTime = .zero
 
+    /// Global timeline times where one video ends and the next begins.
+    var clipBoundaries: [CMTime] = [] {
+        didSet { needsDisplay = true }
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
@@ -76,6 +81,19 @@ class SegmentBarView: NSView {
                 line.lineWidth = 1
                 line.stroke()
             }
+        }
+
+        // Draw clip boundaries as vertical orange lines.
+        NSColor.systemOrange.setStroke()
+        for boundary in clipBoundaries {
+            let t = CMTimeGetSeconds(boundary)
+            guard t > 0 else { continue }
+            let x = t / total * w
+            let path = NSBezierPath()
+            path.move(to: NSPoint(x: x, y: 0))
+            path.line(to: NSPoint(x: x, y: h))
+            path.lineWidth = 2
+            path.stroke()
         }
 
         // Draw cut point handles on top of the segment colors.

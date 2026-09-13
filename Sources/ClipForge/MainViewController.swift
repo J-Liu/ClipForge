@@ -106,6 +106,14 @@ class MainViewController: NSViewController {
             self?.togglePauseRecording()
         }
 
+        playerController.onClipsLoaded = { [weak self] in
+            guard let self else { return }
+            self.updateClipBoundaries()
+            self.durationLabel.stringValue = TimeFormatter.displayString(
+                from: self.playerController.totalDuration
+            )
+        }
+
         setupCallbacks()
     }
 
@@ -393,14 +401,6 @@ class MainViewController: NSViewController {
         }
         rebuildSegments()
 
-        // Update duration label after durations load.
-        Task {
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            await MainActor.run {
-                self.durationLabel.stringValue = TimeFormatter.displayString(from: self.playerController.totalDuration)
-            }
-        }
-
         // Load natural size of the first video for the crop overlay.
         guard let firstURL = urls.first else { return }
         Task {
@@ -524,6 +524,8 @@ class MainViewController: NSViewController {
         segmentBar.segments = newSegments
         segmentBar.totalDuration = total
         segmentBar.cutPoints = cutPoints
+
+        updateClipBoundaries()
     }
 
     private func toggleSegment(at index: Int) {
@@ -902,5 +904,10 @@ class MainViewController: NSViewController {
     private func updateVolumeSlider() {
         let effective = Settings.shared.isMuted ? 0 : Settings.shared.volume
         volumeSlider.doubleValue = Double(effective)
+    }
+
+    private func updateClipBoundaries() {
+        let clips = playerController.clips
+        segmentBar.clipBoundaries = clips.dropFirst().map { $0.startOnTimeline }
     }
 }

@@ -29,6 +29,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        showMainWindow()
+        let urls = filenames.map { URL(fileURLWithPath: $0) }
+        if let vc = windowController?.contentViewController as? MainViewController {
+            vc.loadVideos(urls: urls)
+        }
+        sender.reply(toOpenOrPrint: .success)
+    }
+
     func showMainWindow() {
         if windowController == nil {
             let wc = MainWindowController()

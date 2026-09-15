@@ -62,7 +62,7 @@ extension MainViewController {
     }
 
     @objc func startWindowRecording() {
-        Task {
+        Task { [weak self] in
             guard let content = try? await SCShareableContent.excludingDesktopWindows(
                 false, onScreenWindowsOnly: true
             ) else { return }
@@ -78,12 +78,12 @@ extension MainViewController {
                 $0.windowLayer == 0
             }
 
-            await MainActor.run {
-                self.windowPicker.onPick = { [weak self] window in
+            await MainActor.run { [weak self] in
+                self?.windowPicker.onPick = { [weak self] window in
                     self?.beginWindowRecordingAfterCountdown(window: window)
                 }
-                self.windowPicker.onCancel = { }
-                self.windowPicker.present(targetWindows: candidates)
+                self?.windowPicker.onCancel = { }
+                self?.windowPicker.present(targetWindows: candidates)
             }
         }
     }

@@ -100,6 +100,7 @@ extension MainViewController {
         let target = CMTime(seconds: slider.doubleValue * duration, preferredTimescale: 600)
         playerController.seek(to: target)
         currentTimeLabel.stringValue = TimeFormatter.displayString(from: target)
+        timeInputView.setTime(target)
     }
 
     @objc func dontHideChanged() {

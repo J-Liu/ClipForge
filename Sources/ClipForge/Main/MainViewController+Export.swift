@@ -2,9 +2,12 @@
 // Copyright © 2026 Jia Liu
 
 import AppKit
+import AVFoundation
 import UniformTypeIdentifiers
 
 extension MainViewController {
+
+    static var exportSession: AVAssetExportSession?
 
     @objc func exportVideo() {
         guard requireVideoLoaded() else { return }
@@ -41,8 +44,43 @@ extension MainViewController {
         let frameRate = ExportFrameRate(rawValue: Settings.shared.exportFrameRate) ?? .original
         let format = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
 
-        let originalTitle = view.window?.title ?? "ClipForge"
-        view.window?.title = "Exporting… 0%"
+        // Create progress sheet
+        let progressSheet = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 320, height: 140),
+                                      styleMask: [.titled],
+                                      backing: .buffered,
+                                      defer: false)
+        progressSheet.title = L("alert.exporting", 0)
+        progressSheet.isReleasedWhenClosed = false
+
+        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 140))
+        progressSheet.contentView = containerView
+
+        let messageLabel = NSTextField(labelWithString: L("alert.exporting.message"))
+        messageLabel.frame = NSRect(x: 20, y: 100, width: 280, height: 20)
+        messageLabel.textColor = .secondaryLabelColor
+        messageLabel.font = .systemFont(ofSize: 12)
+
+        let progressBar = NSProgressIndicator(frame: NSRect(x: 20, y: 65, width: 280, height: 20))
+        progressBar.style = .bar
+        progressBar.minValue = 0
+        progressBar.maxValue = 100
+        progressBar.doubleValue = 0
+        progressBar.isIndeterminate = false
+
+        let cancelButton = NSButton(frame: NSRect(x: 120, y: 20, width: 80, height: 24))
+        cancelButton.title = L("alert.cancel")
+        cancelButton.bezelStyle = .rounded
+        cancelButton.target = self
+        cancelButton.action = #selector(cancelExport)
+
+        containerView.addSubview(messageLabel)
+        containerView.addSubview(progressBar)
+        containerView.addSubview(cancelButton)
+
+        guard let window = view.window else { return }
+        window.beginSheet(progressSheet) { [weak self] _ in
+            self?.cleanupExportSheet(progressSheet)
+        }
 
         CompositionBuilder.export(
             clips: playerController.clips,
@@ -52,19 +90,36 @@ extension MainViewController {
             frameRate: frameRate,
             format: format,
             outputURL: outputURL,
-            progress: { [weak self] value in
-                self?.view.window?.title = L("alert.exporting", value * 100)
+            progress: { [weak progressBar, weak progressSheet] value in
+                DispatchQueue.main.async {
+                    let percent = Int(value * 100)
+                    progressBar?.doubleValue = Double(percent)
+                    progressSheet?.title = L("alert.exporting", percent)
+                }
             },
-            completion: { [weak self] result in
-                self?.view.window?.title = originalTitle
-                switch result {
-                case .success:
-                    self?.showAlert(title: L("alert.exportComplete.title"),
-                                    message: outputURL.lastPathComponent)
-                case .failure(let error):
-                    self?.showError(error)
+            completion: { [weak self, weak progressSheet, weak window] result in
+                DispatchQueue.main.async {
+                    if let sheet = progressSheet, let w = window {
+                        w.endSheet(sheet)
+                    }
+                    switch result {
+                    case .success:
+                        self?.showAlert(title: L("alert.exportComplete.title"),
+                                        message: outputURL.lastPathComponent)
+                    case .failure(let error):
+                        self?.showError(error)
+                    }
                 }
             }
         )
+    }
+
+    @objc private func cancelExport() {
+        Self.exportSession?.cancelExport()
+    }
+
+    private func cleanupExportSheet(_ sheet: NSWindow) {
+        sheet.close()
+        Self.exportSession = nil
     }
 }

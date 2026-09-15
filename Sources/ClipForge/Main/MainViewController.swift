@@ -298,6 +298,10 @@ class MainViewController: NSViewController {
             guard let self, index < self.cutPoints.count else { return }
             self.cutPoints[index] = time
             self.rebuildSegments()
+            let duration = CMTimeGetSeconds(self.playerController.totalDuration)
+            if duration > 0 {
+                self.slider.doubleValue = CMTimeGetSeconds(time) / duration
+            }
             self.timeInputView.setTime(time)
             self.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
         }

@@ -268,13 +268,27 @@ class CompositionBuilder {
             session.videoComposition = videoComposition
         }
 
-        // Poll progress on a timer.
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
-            progress(Double(session.progress))
+        // Store session for cancellation
+        MainViewController.exportSession = session
+
+        // Poll progress on a timer on the main thread.
+        var timer: Timer?
+        DispatchQueue.main.async {
+            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                let p = Double(session.progress)
+                progress(p)
+            }
+            if let t = timer {
+                RunLoop.main.add(t, forMode: .common)
+            }
         }
 
         session.exportAsynchronously {
-            timer.invalidate()
+            DispatchQueue.main.async {
+                timer?.invalidate()
+                timer = nil
+                MainViewController.exportSession = nil
+            }
             DispatchQueue.main.async {
                 switch session.status {
                 case .completed:

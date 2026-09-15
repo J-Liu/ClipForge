@@ -164,6 +164,7 @@ let enStrings: [String: String] = [
 
     // Alerts
     "alert.ok": "OK",
+    "alert.cancel": "Cancel",
     "alert.openSystemSettings": "Open System Settings",
     "alert.someVideosNotLoaded.title": "Some videos could not be loaded",
     "alert.someVideosNotLoaded.message": "%d file(s) were skipped.",
@@ -171,6 +172,7 @@ let enStrings: [String: String] = [
     "alert.recordingSaved.title": "Recording Saved (partial)",
     "alert.exportComplete.title": "Export Complete",
     "alert.exporting": "Exporting… %.0f%%",
+    "alert.exporting.message": "Video is being exported, please wait…",
 
     // Time Input
     "timeInput.goToTime": "Go to time",
@@ -363,6 +365,7 @@ let zhHansStrings: [String: String] = [
 
     // Alerts
     "alert.ok": "确定",
+    "alert.cancel": "取消",
     "alert.openSystemSettings": "打开系统设置",
     "alert.someVideosNotLoaded.title": "部分视频无法加载",
     "alert.someVideosNotLoaded.message": "%d 个文件被跳过。",
@@ -370,6 +373,7 @@ let zhHansStrings: [String: String] = [
     "alert.recordingSaved.title": "录制已保存（部分）",
     "alert.exportComplete.title": "导出完成",
     "alert.exporting": "正在导出… %.0f%%",
+    "alert.exporting.message": "视频导出中，请稍后…",
 
     // Time Input
     "timeInput.goToTime": "跳转到时间",
@@ -562,6 +566,7 @@ let zhHantStrings: [String: String] = [
 
     // Alerts
     "alert.ok": "確定",
+    "alert.cancel": "取消",
     "alert.openSystemSettings": "開啟系統設定",
     "alert.someVideosNotLoaded.title": "部分視訊無法載入",
     "alert.someVideosNotLoaded.message": "%d 個檔案被跳過。",
@@ -569,6 +574,7 @@ let zhHantStrings: [String: String] = [
     "alert.recordingSaved.title": "錄製已儲存（部分）",
     "alert.exportComplete.title": "匯出完成",
     "alert.exporting": "正在匯出… %.0f%%",
+    "alert.exporting.message": "視訊匯出中，請稍候…",
 
     // Time Input
     "timeInput.goToTime": "跳轉到時間",

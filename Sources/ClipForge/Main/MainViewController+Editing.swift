@@ -25,7 +25,7 @@ extension MainViewController {
         cutPoints.append(current)
         cutPoints.sort { CMTimeGetSeconds($0) < CMTimeGetSeconds($1) }
         rebuildSegments()
-        
+
         // Sync slider and time input
         let duration = CMTimeGetSeconds(playerController.totalDuration)
         slider.doubleValue = t / duration
@@ -50,7 +50,7 @@ extension MainViewController {
         cutPoints.append(time)
         cutPoints.sort { CMTimeGetSeconds($0) < CMTimeGetSeconds($1) }
         rebuildSegments()
-        
+
         // Sync slider and time input
         let duration = CMTimeGetSeconds(playerController.totalDuration)
         slider.doubleValue = t / duration

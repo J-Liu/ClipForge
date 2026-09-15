@@ -6,7 +6,7 @@ set -e
 
 APP_NAME="ClipForge"
 BUILD_DIR=".build/release"
-APP_BUNDLE="build/${APP_NAME}.app"
+APP_BUNDLE="${APP_NAME}.app"
 ASSETS_CAR="Resources/Compiled/Assets.car"
 
 echo "==> Building..."

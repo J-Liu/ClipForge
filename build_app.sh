@@ -7,17 +7,10 @@ set -e
 APP_NAME="ClipForge"
 BUILD_DIR=".build/release"
 APP_BUNDLE="build/${APP_NAME}.app"
-ICNS="build/ClipForge.icns"
+ASSETS_CAR="Resources/Compiled/Assets.car"
 
 echo "==> Building..."
 swift build -c release
-
-# Generate icon if not exists
-if [ ! -f "$ICNS" ]; then
-    echo "==> Generating icon..."
-    chmod +x make_icon.sh
-    ./make_icon.sh
-fi
 
 echo "==> Packaging .app..."
 rm -rf "${APP_BUNDLE}"
@@ -27,8 +20,8 @@ mkdir -p "${APP_BUNDLE}/Contents/Resources"
 cp "${BUILD_DIR}/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/"
 cp "Resources/Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
 
-if [ -f "$ICNS" ]; then
-    cp "$ICNS" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
+if [ -f "$ASSETS_CAR" ]; then
+    cp "$ASSETS_CAR" "${APP_BUNDLE}/Contents/Resources/"
 fi
 
 echo "==> Done: ${APP_BUNDLE}"

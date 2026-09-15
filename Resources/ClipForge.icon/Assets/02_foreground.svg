@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#FDBA74"/>
+      <stop offset="55%"  stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+
+    <linearGradient id="play" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FFF7ED"/>
+      <stop offset="100%" stop-color="#FED7AA"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="512" cy="512" r="280"
+          fill="none"
+          stroke="url(#ring)"
+          stroke-width="72"/>
+
+  <path d="M 300 340
+           A 280 280 0 0 1 420 250"
+        fill="none"
+        stroke="#FFF7ED"
+        stroke-width="72"
+        stroke-linecap="round"
+        opacity="0.55"/>
+
+  <path d="M 448 392
+           L 448 632
+           L 660 512
+           Z"
+        fill="url(#play)"
+        stroke="#FFF7ED"
+        stroke-width="8"
+        stroke-linejoin="round"/>
+</svg>

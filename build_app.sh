@@ -8,6 +8,7 @@ APP_NAME="ClipForge"
 BUILD_DIR=".build/release"
 APP_BUNDLE="${APP_NAME}.app"
 ASSETS_CAR="Resources/Compiled/Assets.car"
+ICNS_FILE="Resources/Compiled/ClipForge.icns"
 
 echo "==> Building..."
 swift build -c release
@@ -22,7 +23,31 @@ cp "Resources/Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
 
 if [ -f "$ASSETS_CAR" ]; then
     cp "$ASSETS_CAR" "${APP_BUNDLE}/Contents/Resources/"
+    echo "    Copied Assets.car"
+else
+    echo "    Warning: ${ASSETS_CAR} not found"
 fi
+
+if [ -f "$ICNS_FILE" ]; then
+    cp "$ICNS_FILE" "${APP_BUNDLE}/Contents/Resources/"
+    echo "    Copied ClipForge.icns"
+else
+    echo "    Warning: ${ICNS_FILE} not found"
+fi
+
+echo "==> Verifying bundle..."
+for f in \
+    "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" \
+    "${APP_BUNDLE}/Contents/Info.plist" \
+    "${APP_BUNDLE}/Contents/Resources/ClipForge.icns" \
+    "${APP_BUNDLE}/Contents/Resources/Assets.car"
+do
+    if [ -f "$f" ]; then
+        echo "    ✓ $f"
+    else
+        echo "    ✗ MISSING: $f"
+    fi
+done
 
 echo "==> Done: ${APP_BUNDLE}"
 echo "Run with: open ${APP_BUNDLE}"

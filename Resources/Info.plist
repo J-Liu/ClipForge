@@ -27,10 +27,12 @@
     <string>ClipForge needs screen recording permission to capture your screen.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>ClipForge needs microphone access to record audio.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>ClipForge needs access to your photo library to import media for editing.</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Jia Liu. All rights reserved.</string>
     <key>CFBundleIconFile</key>
-    <string></string>
+    <string>ClipForge</string>
     <key>CFBundleIconName</key>
     <string>ClipForge</string>
     <key>CFBundleDocumentTypes</key>

@@ -32,7 +32,11 @@ extension MainViewController {
         panel.accessoryView = optionsView
 
         panel.begin { [weak self] response in
-            guard response == .OK, let outputURL = panel.url else { return }
+            guard response == .OK, var outputURL = panel.url else { return }
+            // Ensure the file extension matches the selected format
+            let selectedFormat = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
+            outputURL.deletePathExtension()
+            outputURL.appendPathExtension(selectedFormat.fileExtension)
             self?.performExport(outputURL: outputURL)
         }
     }

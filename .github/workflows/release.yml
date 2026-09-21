@@ -34,18 +34,17 @@ jobs:
 
       - name: Verify app bundle
         run: |
-          ls -la build/
-          test -d build/ClipForge.app
+          ls -la ClipForge.app
+          test -d ClipForge.app
 
       - name: Package
         run: |
-          cd build
           zip -r ClipForge.zip ClipForge.app
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/ClipForge.zip
+          files: ClipForge.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

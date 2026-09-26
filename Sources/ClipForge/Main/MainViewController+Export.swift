@@ -14,12 +14,35 @@ extension MainViewController {
         guard !playerController.urls.isEmpty else { return }
 
         let panel = NSSavePanel()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        let timestamp = formatter.string(from: Date())
 
         let format = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
-        panel.nameFieldStringValue = "ClipForge-\(timestamp).\(format.fileExtension)"
+        let exportExtension = format.fileExtension
+
+        // Determine default filename based on original file and export format
+        let firstURL = playerController.urls.first!
+        let originalExtension = firstURL.pathExtension.lowercased()
+        let originalName = firstURL.deletingPathExtension().lastPathComponent
+
+        let defaultName: String
+        if (originalExtension == "mp4" && exportExtension == "mov") ||
+           (originalExtension == "mov" && exportExtension == "mp4") {
+            // Different format: use original filename with new extension
+            defaultName = "\(originalName).\(exportExtension)"
+        } else if originalExtension == exportExtension {
+            // Same format: add ClipForge suffix with timestamp
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyyMMdd-HHmmss"
+            let timestamp = formatter.string(from: Date())
+            defaultName = "\(originalName)-ClipForge-\(timestamp).\(exportExtension)"
+        } else {
+            // Other cases: use ClipForge prefix with timestamp
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyyMMdd-HHmmss"
+            let timestamp = formatter.string(from: Date())
+            defaultName = "ClipForge-\(timestamp).\(exportExtension)"
+        }
+
+        panel.nameFieldStringValue = defaultName
         switch format {
         case .mov:
             panel.allowedContentTypes = [.quickTimeMovie]

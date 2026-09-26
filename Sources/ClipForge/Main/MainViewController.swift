@@ -128,6 +128,11 @@ class MainViewController: NSViewController {
             self.durationLabel.stringValue = TimeFormatter.displayString(
                 from: self.playerController.totalDuration
             )
+            // Update window title with filename
+            if let firstURL = self.playerController.urls.first {
+                let filename = firstURL.deletingPathExtension().lastPathComponent
+                self.view.window?.title = "ClipForge - \(filename)"
+            }
         }
 
         playerController.onLoadFailed = { [weak self] count in

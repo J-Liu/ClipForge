@@ -2,11 +2,20 @@
 // Copyright © 2026 Jia Liu
 
 import AppKit
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: MainWindowController?
+    private var updaterController: SPUStandardUpdaterController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize Sparkle updater
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+
         MenuBuilder.build()
         installKeyMonitor()
         showMainWindow()
@@ -46,6 +55,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController?.showWindow(nil)
         windowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
     }
 
     private func installKeyMonitor() {

@@ -47,8 +47,8 @@ class AppActions {
     }
 
     @objc func checkForUpdates() {
-        if let url = URL(string: "https://github.com/J-Liu/ClipForge/releases") {
-            NSWorkspace.shared.open(url)
+        if let delegate = NSApp.delegate as? AppDelegate {
+            delegate.checkForUpdates()
         }
     }
 

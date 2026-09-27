@@ -22,6 +22,9 @@ jobs:
       - name: Install librsvg
         run: brew install librsvg
 
+      - name: Install Sparkle tools
+        run: brew install --cask sparkle
+
       - name: Generate icon
         run: |
           chmod +x make_icon.sh
@@ -32,19 +35,90 @@ jobs:
           chmod +x build_app.sh
           ./build_app.sh
 
+      - name: Sign app bundle
+        run: |
+          codesign --force --deep --sign - --identifier com.jialiu.clipforge ClipForge.app
+
       - name: Verify app bundle
         run: |
           ls -la ClipForge.app
           test -d ClipForge.app
+          codesign --verify --verbose ClipForge.app
 
-      - name: Package
+      - name: Package and sign
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          zip -r ClipForge.zip ClipForge.app
+          # Get version from Info.plist
+          VERSION=$(plutil -extract CFBundleShortVersionString raw ClipForge.app/Contents/Info.plist)
+          BUILD=$(plutil -extract CFBundleVersion raw ClipForge.app/Contents/Info.plist)
+
+          # Create archive
+          tar -czf ClipForge-${VERSION}.tar.gz ClipForge.app
+
+          # Sign with Sparkle
+          echo "$SPARKLE_PRIVATE_KEY" > sparkle-private-key.pem
+          /Applications/Sparkle/bin/sign_update ClipForge-${VERSION}.tar.gz -f sparkle-private-key.pem > signature.txt
+          rm sparkle-private-key.pem
+
+          # Read signature
+          SIGNATURE=$(cat signature.txt)
+
+          # Download existing appcast if available
+          curl -sL https://J-Liu.github.io/ClipForge/appcast.xml -o old_appcast.xml || true
+
+          # Generate new appcast entry
+          cat > appcast_item.xml << EOF
+          <item>
+              <title>ClipForge ${VERSION}</title>
+              <pubDate>$(date -R)</pubDate>
+              <sparkle:version>${BUILD}</sparkle:version>
+              <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+              <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+              <enclosure url="https://github.com/J-Liu/ClipForge/releases/download/${GITHUB_REF#refs/tags/}/ClipForge-${VERSION}.tar.gz"
+                  sparkle:edSignature="${SIGNATURE}"
+                  length="$(wc -c < ClipForge-${VERSION}.tar.gz | tr -d ' ')"
+                  type="application/octet-stream"/>
+          </item>
+          EOF
+
+          # Create full appcast.xml
+          if [ -f old_appcast.xml ] && grep -q "</channel>" old_appcast.xml; then
+            # Insert new item after <channel>
+            sed -i '' '/<channel>/r appcast_item.xml' old_appcast.xml
+            mv old_appcast.xml appcast.xml
+          else
+            cat > appcast.xml << 'XMLEOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+              <channel>
+                  <title>ClipForge Changelog</title>
+                  <link>https://J-Liu.github.io/ClipForge/appcast.xml</link>
+                  <description>ClipForge release updates</description>
+                  <language>en</language>
+          XMLEOF
+            cat appcast_item.xml >> appcast.xml
+            echo "              </channel>" >> appcast.xml
+            echo "          </rss>" >> appcast.xml
+          fi
+
+          rm -f appcast_item.xml old_appcast.xml signature.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ClipForge.zip
+          files: |
+            ClipForge-*.tar.gz
+            appcast.xml
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          force_orphan: true
+          keep_files: true

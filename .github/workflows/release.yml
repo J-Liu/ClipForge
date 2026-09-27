@@ -23,7 +23,12 @@ jobs:
         run: brew install librsvg
 
       - name: Install Sparkle tools
-        run: brew install --cask sparkle
+        run: |
+          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.6.0/Sparkle-2.6.0.tar.xz -o sparkle.tar.xz
+          tar -xf sparkle.tar.xz
+          mkdir -p /usr/local/bin
+          cp Sparkle/bin/sign_update /usr/local/bin/
+          chmod +x /usr/local/bin/sign_update
 
       - name: Generate icon
         run: |
@@ -58,7 +63,7 @@ jobs:
 
           # Sign with Sparkle
           echo "$SPARKLE_PRIVATE_KEY" > sparkle-private-key.pem
-          /Applications/Sparkle/bin/sign_update ClipForge-${VERSION}.tar.gz -f sparkle-private-key.pem > signature.txt
+          sign_update ClipForge-${VERSION}.tar.gz -f sparkle-private-key.pem > signature.txt
           rm sparkle-private-key.pem
 
           # Read signature

@@ -22,14 +22,6 @@ jobs:
       - name: Install librsvg
         run: brew install librsvg
 
-      - name: Install Sparkle tools
-        run: |
-          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.6.0/Sparkle-2.6.0.tar.xz -o sparkle.tar.xz
-          tar -xf sparkle.tar.xz
-          mkdir -p /usr/local/bin
-          cp Sparkle/bin/sign_update /usr/local/bin/
-          chmod +x /usr/local/bin/sign_update
-
       - name: Generate icon
         run: |
           chmod +x make_icon.sh
@@ -50,48 +42,92 @@ jobs:
           test -d ClipForge.app
           codesign --verify --verbose ClipForge.app
 
-      - name: Package and sign
+      - name: Create ZIP for Sparkle
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          zip -r "ClipForge-${VERSION}.zip" ClipForge.app
+
+      - name: Sign update
+        id: sign
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          # Get version from Info.plist
-          VERSION=$(plutil -extract CFBundleShortVersionString raw ClipForge.app/Contents/Info.plist)
-          BUILD=$(plutil -extract CFBundleVersion raw ClipForge.app/Contents/Info.plist)
+          VERSION="${GITHUB_REF_NAME#v}"
+          ZIP="ClipForge-${VERSION}.zip"
 
-          # Create archive
-          tar -czf ClipForge-${VERSION}.tar.gz ClipForge.app
+          echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.txt
+          RAW=$(./.build/artifacts/sparkle/Sparkle/bin/sign_update "$ZIP" --ed-key-file /tmp/sparkle_key.txt)
+          rm /tmp/sparkle_key.txt
 
-          # Sign with Sparkle
-          echo "$SPARKLE_PRIVATE_KEY" > sparkle-private-key.pem
-          sign_update ClipForge-${VERSION}.tar.gz -f sparkle-private-key.pem > signature.txt
-          rm sparkle-private-key.pem
+          # Extract just the base64 signature
+          SIGNATURE=$(echo "$RAW" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
 
-          # Read signature
-          SIGNATURE=$(cat signature.txt)
+          LENGTH=$(stat -f%z "$ZIP")
+          BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ClipForge.app/Contents/Info.plist)
+
+          echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+          echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ClipForge-*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update appcast
+        run: |
+          VERSION="${{ steps.sign.outputs.version }}"
+          SIGNATURE="${{ steps.sign.outputs.signature }}"
+          LENGTH="${{ steps.sign.outputs.length }}"
+          BUILD="${{ steps.sign.outputs.build }}"
+          DATE=$(date -u +"%a, %d %b %Y %H:%M:%S +0000")
 
           # Download existing appcast if available
-          curl -sL https://J-Liu.github.io/ClipForge/appcast.xml -o old_appcast.xml || true
+          curl -sL https://J-Liu.github.io/ClipForge/appcast.xml -o appcast.xml || true
 
-          # Generate new appcast entry
-          cat > appcast_item.xml << EOF
+          # Build the new item block
+          NEW_ITEM=$(cat <<EOF
           <item>
-              <title>ClipForge ${VERSION}</title>
-              <pubDate>$(date -R)</pubDate>
+              <title>Version ${VERSION}</title>
+              <pubDate>${DATE}</pubDate>
               <sparkle:version>${BUILD}</sparkle:version>
               <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
               <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-              <enclosure url="https://github.com/J-Liu/ClipForge/releases/download/${GITHUB_REF#refs/tags/}/ClipForge-${VERSION}.tar.gz"
+              <enclosure
+                  url="https://github.com/J-Liu/ClipForge/releases/download/v${VERSION}/ClipForge-${VERSION}.zip"
                   sparkle:edSignature="${SIGNATURE}"
-                  length="$(wc -c < ClipForge-${VERSION}.tar.gz | tr -d ' ')"
+                  length="${LENGTH}"
                   type="application/octet-stream"/>
           </item>
           EOF
+          )
 
-          # Create full appcast.xml
-          if [ -f old_appcast.xml ] && grep -q "</channel>" old_appcast.xml; then
-            # Insert new item after <channel>
-            sed -i '' '/<channel>/r appcast_item.xml' old_appcast.xml
-            mv old_appcast.xml appcast.xml
+          # Create or update appcast.xml
+          if [ -f appcast.xml ] && grep -q "</channel>" appcast.xml; then
+            # Insert the new item right after <language>en</language>
+            python3 - <<PYEOF
+          import re
+          path = "appcast.xml"
+          with open(path) as f:
+              content = f.read()
+
+          new_item = """${NEW_ITEM}"""
+
+          content = re.sub(
+              r'(<language>en</language>)',
+              r'\1\n    ' + new_item,
+              content,
+              count=1
+          )
+
+          with open(path, "w") as f:
+              f.write(content)
+          PYEOF
           else
             cat > appcast.xml << 'XMLEOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -102,22 +138,12 @@ jobs:
                   <description>ClipForge release updates</description>
                   <language>en</language>
           XMLEOF
-            cat appcast_item.xml >> appcast.xml
+            cat >> appcast.xml << EOF
+              ${NEW_ITEM}
+          EOF
             echo "              </channel>" >> appcast.xml
             echo "          </rss>" >> appcast.xml
           fi
-
-          rm -f appcast_item.xml old_appcast.xml signature.txt
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ClipForge-*.tar.gz
-            appcast.xml
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

@@ -35,6 +35,19 @@ else
     echo "    Warning: ${ICNS_FILE} not found"
 fi
 
+# Copy Sparkle.framework
+SPARKLE_FRAMEWORK="${BUILD_DIR}/Sparkle.framework"
+if [ -d "$SPARKLE_FRAMEWORK" ]; then
+    mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
+    cp -R "$SPARKLE_FRAMEWORK" "${APP_BUNDLE}/Contents/Frameworks/"
+    echo "    Copied Sparkle.framework"
+else
+    echo "    Warning: ${SPARKLE_FRAMEWORK} not found"
+fi
+
+# Add rpath for frameworks
+install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
+
 echo "==> Verifying bundle..."
 for f in \
     "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" \

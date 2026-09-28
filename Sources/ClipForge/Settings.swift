@@ -174,4 +174,31 @@ class Settings {
         }
         set { defaults.set(newValue, forKey: "showsCursor") }
     }
+
+    var updateCheckFrequency: UpdateCheckFrequency {
+        get {
+            let raw = defaults.string(forKey: "updateCheckFrequency") ?? UpdateCheckFrequency.onLaunch.rawValue
+            return UpdateCheckFrequency(rawValue: raw) ?? .onLaunch
+        }
+        set { defaults.set(newValue.rawValue, forKey: "updateCheckFrequency") }
+    }
+}
+
+/// Update check frequency
+enum UpdateCheckFrequency: String, CaseIterable {
+    case onLaunch = "onLaunch"
+    case daily = "daily"
+    case weekly = "weekly"
+    case monthly = "monthly"
+    case never = "never"
+
+    var sparkleInterval: Double? {
+        switch self {
+        case .onLaunch: return 0  // Sparkle treats 0 as check on launch
+        case .daily: return 86400  // 1 day in seconds
+        case .weekly: return 604800  // 1 week in seconds
+        case .monthly: return 2592000  // 30 days in seconds
+        case .never: return nil
+        }
+    }
 }

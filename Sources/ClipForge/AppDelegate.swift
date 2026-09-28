@@ -16,6 +16,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             userDriverDelegate: nil
         )
 
+        // Configure update check interval based on settings
+        configureUpdateCheckInterval()
+
         MenuBuilder.build()
         installKeyMonitor()
         showMainWindow()
@@ -26,6 +29,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             self?.windowController = nil
+        }
+    }
+
+    private func configureUpdateCheckInterval() {
+        let frequency = Settings.shared.updateCheckFrequency
+        let updater = updaterController.updater
+
+        if let interval = frequency.sparkleInterval {
+            // Set the check interval (in seconds)
+            updater.automaticallyChecksForUpdates = true
+            UserDefaults.standard.set(interval, forKey: "SUScheduledCheckInterval")
+        } else {
+            // Never check automatically
+            updater.automaticallyChecksForUpdates = false
         }
     }
 

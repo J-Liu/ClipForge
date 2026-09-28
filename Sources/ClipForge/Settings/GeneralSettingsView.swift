@@ -11,9 +11,12 @@ class GeneralSettingsViewController: NSViewController {
     private let dontHideCheckbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let countdownPopup = NSPopUpButton()
     private let countdownLabel = NSTextField(labelWithString: "")
+    private let updateFrequencyPopup = NSPopUpButton()
+    private let updateFrequencyLabel = NSTextField(labelWithString: "")
+    private let checkUpdateButton = NSButton()
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 300))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 380))
     }
 
     override func viewDidLoad() {
@@ -70,6 +73,19 @@ class GeneralSettingsViewController: NSViewController {
         countdownSection.addArrangedSubview(createRowView(label: countdownLabel, control: countdownPopup))
         stackView.addArrangedSubview(countdownSection)
 
+        // Update frequency section
+        let updateSection = createSectionView()
+        updateFrequencyPopup.target = self
+        updateFrequencyPopup.action = #selector(updateFrequencyPopupChanged)
+        updateSection.addArrangedSubview(createRowView(label: updateFrequencyLabel, control: updateFrequencyPopup))
+
+        checkUpdateButton.bezelStyle = .rounded
+        checkUpdateButton.target = self
+        checkUpdateButton.action = #selector(checkForUpdates)
+        updateSection.addArrangedSubview(checkUpdateButton)
+
+        stackView.addArrangedSubview(updateSection)
+
         view.addSubview(stackView)
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
@@ -86,6 +102,8 @@ class GeneralSettingsViewController: NSViewController {
         // Update labels
         languageLabel.stringValue = L("settings.general.language")
         countdownLabel.stringValue = L("settings.general.countdown")
+        updateFrequencyLabel.stringValue = L("settings.general.updateFrequency")
+        checkUpdateButton.title = L("settings.general.checkForUpdates")
         quitCheckbox.title = L("settings.general.quitAfterLastWindow")
         dontHideCheckbox.title = L("settings.general.dontHideWindow")
 
@@ -117,6 +135,17 @@ class GeneralSettingsViewController: NSViewController {
         countdownPopup.lastItem?.representedObject = 5
         if currentCountdownValue == 5 {
             countdownPopup.select(countdownPopup.lastItem)
+        }
+
+        // Update frequency
+        let currentFrequency = Settings.shared.updateCheckFrequency
+        updateFrequencyPopup.removeAllItems()
+        for freq in UpdateCheckFrequency.allCases {
+            updateFrequencyPopup.addItem(withTitle: L("settings.general.updateFrequency.\(freq.rawValue)"))
+            updateFrequencyPopup.lastItem?.representedObject = freq
+            if freq == currentFrequency {
+                updateFrequencyPopup.select(updateFrequencyPopup.lastItem)
+            }
         }
     }
 
@@ -160,6 +189,15 @@ class GeneralSettingsViewController: NSViewController {
     @objc private func countdownPopupChanged() {
         guard let value = countdownPopup.selectedItem?.representedObject as? Int else { return }
         UserDefaults.standard.set(value, forKey: "countdownSeconds")
+    }
+
+    @objc private func updateFrequencyPopupChanged() {
+        guard let freq = updateFrequencyPopup.selectedItem?.representedObject as? UpdateCheckFrequency else { return }
+        Settings.shared.updateCheckFrequency = freq
+    }
+
+    @objc private func checkForUpdates() {
+        AppActions.shared.checkForUpdates()
     }
 
     @objc private func languageChanged() {

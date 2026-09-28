@@ -19,6 +19,13 @@ let enStrings: [String: String] = [
     "settings.general.countdown.none": "None",
     "settings.general.countdown.3seconds": "3 seconds",
     "settings.general.countdown.5seconds": "5 seconds",
+    "settings.general.updateFrequency": "Check for updates",
+    "settings.general.updateFrequency.onLaunch": "On every launch",
+    "settings.general.updateFrequency.daily": "Daily",
+    "settings.general.updateFrequency.weekly": "Weekly",
+    "settings.general.updateFrequency.monthly": "Monthly",
+    "settings.general.updateFrequency.never": "Never",
+    "settings.general.checkForUpdates": "Check Now",
 
     // Settings - Recording
     "settings.recording.defaultMode": "Default Mode",
@@ -225,6 +232,13 @@ let zhHansStrings: [String: String] = [
     "settings.general.countdown.none": "无",
     "settings.general.countdown.3seconds": "3 秒",
     "settings.general.countdown.5seconds": "5 秒",
+    "settings.general.updateFrequency": "检查更新",
+    "settings.general.updateFrequency.onLaunch": "每次启动",
+    "settings.general.updateFrequency.daily": "每天",
+    "settings.general.updateFrequency.weekly": "每周",
+    "settings.general.updateFrequency.monthly": "每月",
+    "settings.general.updateFrequency.never": "从不",
+    "settings.general.checkForUpdates": "立即检查",
 
     // Settings - Recording
     "settings.recording.defaultMode": "默认模式",
@@ -431,6 +445,13 @@ let zhHantStrings: [String: String] = [
     "settings.general.countdown.none": "無",
     "settings.general.countdown.3seconds": "3 秒",
     "settings.general.countdown.5seconds": "5 秒",
+    "settings.general.updateFrequency": "檢查更新",
+    "settings.general.updateFrequency.onLaunch": "每次啟動",
+    "settings.general.updateFrequency.daily": "每天",
+    "settings.general.updateFrequency.weekly": "每週",
+    "settings.general.updateFrequency.monthly": "每月",
+    "settings.general.updateFrequency.never": "從不",
+    "settings.general.checkForUpdates": "立即檢查",
 
     // Settings - Recording
     "settings.recording.defaultMode": "預設模式",

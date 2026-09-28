@@ -1,155 +1,164 @@
-name: Release
+name: Build macOS App
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: [ 'v*' ]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Show Swift version
-        run: swift --version
+    - name: Cache Swift packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
 
-      - name: Install librsvg
-        run: brew install librsvg
+    - name: Import signing certificate
+      run: |
+        # Decode .p12 from secret
+        echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
 
-      - name: Generate icon
-        run: |
-          chmod +x make_icon.sh
-          ./make_icon.sh
+        # Create and unlock a temporary keychain
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
 
-      - name: Build app bundle
-        run: |
-          chmod +x build_app.sh
-          ./build_app.sh
+        # Import the .p12
+        security import /tmp/cert.p12 -k build.keychain \
+          -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
+          -T /usr/bin/codesign
 
-      - name: Sign app bundle
-        run: |
-          codesign --force --deep --sign - --identifier com.jialiu.clipforge ClipForge.app
+        # Allow codesign to access the key without prompting
+        security set-key-partition-list -S apple-tool:,apple:,codesign: \
+          -s -k "" build.keychain
 
-      - name: Verify app bundle
-        run: |
-          ls -la ClipForge.app
-          test -d ClipForge.app
-          codesign --verify --verbose ClipForge.app
+        # Export the certificate part as PEM and add it as trusted
+        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
+        sudo security add-trusted-cert -d -r trustRoot \
+          -k /Library/Keychains/System.keychain /tmp/cert.pem
 
-      - name: Create ZIP for Sparkle
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          zip -r "ClipForge-${VERSION}.zip" ClipForge.app
+        rm /tmp/cert.p12 /tmp/cert.pem
 
-      - name: Sign update
-        id: sign
-        env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          ZIP="ClipForge-${VERSION}.zip"
+    - name: Install librsvg
+      run: brew install librsvg
 
-          echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.txt
-          RAW=$(./.build/artifacts/sparkle/Sparkle/bin/sign_update "$ZIP" --ed-key-file /tmp/sparkle_key.txt)
-          rm /tmp/sparkle_key.txt
+    - name: Generate icon
+      run: |
+        chmod +x make_icon.sh
+        ./make_icon.sh
 
-          # Extract just the base64 signature
-          SIGNATURE=$(echo "$RAW" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+    - name: Build and package
+      run: |
+        chmod +x build.sh
+        ./build.sh
 
-          LENGTH=$(stat -f%z "$ZIP")
-          BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ClipForge.app/Contents/Info.plist)
+    - name: Create ZIP for Sparkle
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        zip -r "ClipForge-${VERSION}.zip" ClipForge.app
 
-          echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
-          echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+    - name: Sign update
+      if: startsWith(github.ref, 'refs/tags/')
+      id: sign
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        ZIP="ClipForge-${VERSION}.zip"
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ClipForge-*.zip
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "${{ secrets.SPARKLE_PRIVATE_KEY }}" > /tmp/sparkle_key.txt
+        RAW=$(./.build/artifacts/sparkle/Sparkle/bin/sign_update "$ZIP" --ed-key-file /tmp/sparkle_key.txt)
+        rm /tmp/sparkle_key.txt
 
-      - name: Update appcast
-        run: |
-          VERSION="${{ steps.sign.outputs.version }}"
-          SIGNATURE="${{ steps.sign.outputs.signature }}"
-          LENGTH="${{ steps.sign.outputs.length }}"
-          BUILD="${{ steps.sign.outputs.build }}"
-          DATE=$(date -u +"%a, %d %b %Y %H:%M:%S +0000")
+        # Extract just the base64 signature from: sparkle:edSignature="..." length="..."
+        SIGNATURE=$(echo "$RAW" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
 
-          # Download existing appcast if available
-          curl -sL https://J-Liu.github.io/ClipForge/appcast.xml -o appcast.xml || true
+        LENGTH=$(stat -f%z "$ZIP")
+        BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" ClipForge.app/Contents/Info.plist)
 
-          # Build the new item block
-          NEW_ITEM=$(cat <<EOF
-          <item>
-              <title>Version ${VERSION}</title>
-              <pubDate>${DATE}</pubDate>
-              <sparkle:version>${BUILD}</sparkle:version>
-              <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-              <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-              <enclosure
-                  url="https://github.com/J-Liu/ClipForge/releases/download/v${VERSION}/ClipForge-${VERSION}.zip"
-                  sparkle:edSignature="${SIGNATURE}"
-                  length="${LENGTH}"
-                  type="application/octet-stream"/>
-          </item>
-          EOF
-          )
+        echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+        echo "length=$LENGTH" >> "$GITHUB_OUTPUT"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "build=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
-          # Create or update appcast.xml
-          if [ -f appcast.xml ] && grep -q "</channel>" appcast.xml; then
-            # Insert the new item right after <language>en</language>
-            python3 - <<PYEOF
-          import re
-          path = "appcast.xml"
-          with open(path) as f:
-              content = f.read()
+    - name: Upload app bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: ClipForge-app
+        path: ClipForge.app
 
-          new_item = """${NEW_ITEM}"""
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ClipForge-*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          content = re.sub(
-              r'(<language>en</language>)',
-              r'\1\n    ' + new_item,
-              content,
-              count=1
-          )
+    - name: Update appcast
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        VERSION="${{ steps.sign.outputs.version }}"
+        SIGNATURE="${{ steps.sign.outputs.signature }}"
+        LENGTH="${{ steps.sign.outputs.length }}"
+        BUILD="${{ steps.sign.outputs.build }}"
+        DATE=$(date -u +"%a, %d %b %Y %H:%M:%S +0000")
 
-          with open(path, "w") as f:
-              f.write(content)
-          PYEOF
-          else
-            cat > appcast.xml << 'XMLEOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-              <channel>
-                  <title>ClipForge Changelog</title>
-                  <link>https://J-Liu.github.io/ClipForge/appcast.xml</link>
-                  <description>ClipForge release updates</description>
-                  <language>en</language>
-          XMLEOF
-            cat >> appcast.xml << EOF
-              ${NEW_ITEM}
-          EOF
-            echo "              </channel>" >> appcast.xml
-            echo "          </rss>" >> appcast.xml
-          fi
+        # Build the new item block
+        NEW_ITEM=$(cat <<EOF
+        <item>
+            <title>Version ${VERSION}</title>
+            <pubDate>${DATE}</pubDate>
+            <sparkle:version>${BUILD}</sparkle:version>
+            <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/J-Liu/ClipForge/releases/download/v${VERSION}/ClipForge-${VERSION}.zip"
+                sparkle:edSignature="${SIGNATURE}"
+                length="${LENGTH}"
+                type="application/octet-stream"/>
+        </item>
+        EOF
+        )
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
-          force_orphan: true
-          keep_files: true
+        # Insert the new item right after <language>en</language>
+        python3 - <<PYEOF
+        import re
+        path = "docs/appcast.xml"
+        with open(path) as f:
+            content = f.read()
+
+        new_item = """${NEW_ITEM}"""
+
+        content = re.sub(
+            r'(<language>en</language>)',
+            r'\1\n    ' + new_item,
+            content,
+            count=1
+        )
+
+        with open(path, "w") as f:
+            f.write(content)
+        PYEOF
+
+        # Commit and push
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/appcast.xml
+        git commit -m "Update appcast for v${VERSION}"
+        git push origin HEAD:main

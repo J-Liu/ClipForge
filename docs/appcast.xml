@@ -5,5 +5,17 @@
         <link>https://J-Liu.github.io/ClipForge/appcast.xml</link>
         <description>ClipForge releases</description>
         <language>en</language>
+    <item>
+    <title>Version 0.1.6</title>
+    <pubDate>Mon, 28 Sep 2026 08:48:28 +0000</pubDate>
+    <sparkle:version>1</sparkle:version>
+    <sparkle:shortVersionString>0.1.6</sparkle:shortVersionString>
+    <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+    <enclosure
+        url="https://github.com/J-Liu/ClipForge/releases/download/v0.1.6/ClipForge-0.1.6.zip"
+        sparkle:edSignature="8ZRsAzZqj5CT327tiLRyHhkuhJsdkydmJuSjdMS1HCUuE0UpeYYj9W45fCx0ePz53rnAnQGHgFzzqldGdYC7Cw=="
+        length="5071048"
+        type="application/octet-stream"/>
+</item>
     </channel>
 </rss>

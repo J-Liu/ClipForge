@@ -139,6 +139,11 @@ let enStrings: [String: String] = [
     "main.tooltip.crop": "Drag to crop. Press Esc to reset.",
     "main.tooltip.timeline": "Click to add a cut point. Right-click a segment to keep/remove it. Double-click a cut point to delete.",
     "main.dontHide": "Don't hide",
+    "main.tooltip.zoomIn": "Zoom in",
+    "main.tooltip.zoomOut": "Zoom out",
+    "main.tooltip.resetZoom": "Reset zoom",
+    "main.tooltip.segmentList": "Show segment list",
+    "main.segmentList.title": "Segments",
 
     // Errors
     "error.noVideoLoaded": "No video loaded",
@@ -340,6 +345,11 @@ let zhHansStrings: [String: String] = [
     "main.tooltip.crop": "拖动以裁剪。按 Esc 重置。",
     "main.tooltip.timeline": "点击添加剪辑点。右键点击片段以保留/移除。双击剪辑点以删除。",
     "main.dontHide": "不隐藏",
+    "main.tooltip.zoomIn": "放大",
+    "main.tooltip.zoomOut": "缩小",
+    "main.tooltip.resetZoom": "重置缩放",
+    "main.tooltip.segmentList": "显示片段列表",
+    "main.segmentList.title": "片段",
 
     // Errors
     "error.noVideoLoaded": "未加载视频",
@@ -541,6 +551,11 @@ let zhHantStrings: [String: String] = [
     "main.tooltip.crop": "拖曳以裁切。按 Esc 重置。",
     "main.tooltip.timeline": "點擊加入剪輯點。右鍵點擊片段以保留/移除。雙擊剪輯點以刪除。",
     "main.dontHide": "不隱藏",
+    "main.tooltip.zoomIn": "放大",
+    "main.tooltip.zoomOut": "縮小",
+    "main.tooltip.resetZoom": "重置縮放",
+    "main.tooltip.segmentList": "顯示片段列表",
+    "main.segmentList.title": "片段",
 
     // Errors
     "error.noVideoLoaded": "未載入視訊",

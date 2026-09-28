@@ -85,6 +85,7 @@ extension MainViewController {
         segmentBar.segments = newSegments
         segmentBar.totalDuration = total
         segmentBar.cutPoints = cutPoints
+        updateSegmentListIfNeeded()
     }
 
     func toggleSegment(at index: Int) {
@@ -92,6 +93,22 @@ extension MainViewController {
         registerUndo()
         segments[index].isKept.toggle()
         segmentBar.segments = segments
+    }
+
+    @objc func showSegmentList() {
+        if let wc = segmentListWindowController {
+            wc.showWindow(nil)
+            return
+        }
+
+        let wc = SegmentListWindowController(mainViewController: self)
+        wc.updateSegments(segments)
+        segmentListWindowController = wc
+        wc.showWindow(nil)
+    }
+
+    func updateSegmentListIfNeeded() {
+        segmentListWindowController?.updateSegments(segments)
     }
 
     func refreshTimelineUI(rebuild: Bool = true) {

@@ -87,6 +87,16 @@ class MainViewController: NSViewController {
         return b
     }()
 
+    let segmentListButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "list.bullet",
+                                        accessibilityDescription: L("main.tooltip.segmentList"))!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
+    var segmentListWindowController: SegmentListWindowController?
+
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
     }
@@ -206,6 +216,7 @@ class MainViewController: NSViewController {
         dontHideCheckbox.translatesAutoresizingMaskIntoConstraints = false
         volumeSlider.translatesAutoresizingMaskIntoConstraints = false
         muteButton.translatesAutoresizingMaskIntoConstraints = false
+        segmentListButton.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -254,6 +265,10 @@ class MainViewController: NSViewController {
         muteButton.target = self
         muteButton.action = #selector(toggleMute)
 
+        segmentListButton.target = self
+        segmentListButton.action = #selector(showSegmentList)
+        segmentListButton.toolTip = L("main.tooltip.segmentList")
+
         segmentBar.onCutPointAdded = { [weak self] time in
             self?.addCutPointAt(time)
         }
@@ -289,6 +304,7 @@ class MainViewController: NSViewController {
         view.addSubview(dontHideCheckbox)
         view.addSubview(volumeSlider)
         view.addSubview(muteButton)
+        view.addSubview(segmentListButton)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -387,7 +403,10 @@ class MainViewController: NSViewController {
             exportButton.leadingAnchor.constraint(equalTo: timeInputView.trailingAnchor, constant: 12),
             exportButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
 
-            separator.leadingAnchor.constraint(greaterThanOrEqualTo: exportButton.trailingAnchor, constant: 12),
+            segmentListButton.leadingAnchor.constraint(equalTo: exportButton.trailingAnchor, constant: 8),
+            segmentListButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            separator.leadingAnchor.constraint(greaterThanOrEqualTo: segmentListButton.trailingAnchor, constant: 12),
             separator.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -12),
             separator.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
             separator.heightAnchor.constraint(equalToConstant: 20),

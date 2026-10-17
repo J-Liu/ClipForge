@@ -26,6 +26,7 @@ let enStrings: [String: String] = [
     "settings.general.updateFrequency.monthly": "Monthly",
     "settings.general.updateFrequency.never": "Never",
     "settings.general.checkForUpdates": "Check Now",
+    "settings.general.recentFileCount": "Number of recent items",
 
     // Settings - Recording
     "settings.recording.defaultMode": "Default Mode",
@@ -96,6 +97,9 @@ let enStrings: [String: String] = [
     "menu.file": "File",
     "menu.file.newWindow": "New Window",
     "menu.file.open": "Open…",
+    "menu.file.openRecent": "Open Recent",
+    "menu.file.openRecent.empty": "No Items",
+    "menu.file.openRecent.clear": "Clear Menu",
     "menu.file.appendVideo": "Append Video…",
     "menu.file.export": "Export…",
     "menu.file.close": "Close",
@@ -239,6 +243,7 @@ let zhHansStrings: [String: String] = [
     "settings.general.updateFrequency.monthly": "每月",
     "settings.general.updateFrequency.never": "从不",
     "settings.general.checkForUpdates": "立即检查",
+    "settings.general.recentFileCount": "最近项目数量",
 
     // Settings - Recording
     "settings.recording.defaultMode": "默认模式",
@@ -309,6 +314,9 @@ let zhHansStrings: [String: String] = [
     "menu.file": "文件",
     "menu.file.newWindow": "新建窗口",
     "menu.file.open": "打开…",
+    "menu.file.openRecent": "最近打开",
+    "menu.file.openRecent.empty": "无项目",
+    "menu.file.openRecent.clear": "清除菜单",
     "menu.file.appendVideo": "追加视频…",
     "menu.file.export": "导出…",
     "menu.file.close": "关闭",
@@ -452,6 +460,7 @@ let zhHantStrings: [String: String] = [
     "settings.general.updateFrequency.monthly": "每月",
     "settings.general.updateFrequency.never": "從不",
     "settings.general.checkForUpdates": "立即檢查",
+    "settings.general.recentFileCount": "最近項目數量",
 
     // Settings - Recording
     "settings.recording.defaultMode": "預設模式",
@@ -522,6 +531,9 @@ let zhHantStrings: [String: String] = [
     "menu.file": "檔案",
     "menu.file.newWindow": "新增視窗",
     "menu.file.open": "打開…",
+    "menu.file.openRecent": "最近打開",
+    "menu.file.openRecent.empty": "無項目",
+    "menu.file.openRecent.clear": "清除選單",
     "menu.file.appendVideo": "附加視訊…",
     "menu.file.export": "匯出…",
     "menu.file.close": "關閉",

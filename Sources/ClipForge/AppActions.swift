@@ -80,4 +80,13 @@ class AppActions {
             .credits: credits
         ])
     }
+
+    @objc func openRecentFile(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        mainViewController?.openFileAt(url)
+    }
+
+    @objc func clearRecentFiles() {
+        Settings.shared.clearRecentFiles()
+    }
 }

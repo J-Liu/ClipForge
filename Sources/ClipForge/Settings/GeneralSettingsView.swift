@@ -14,9 +14,11 @@ class GeneralSettingsViewController: NSViewController {
     private let updateFrequencyPopup = NSPopUpButton()
     private let updateFrequencyLabel = NSTextField(labelWithString: "")
     private let checkUpdateButton = NSButton()
+    private let recentFileCountField = NSTextField()
+    private let recentFileCountLabel = NSTextField(labelWithString: "")
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 380))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 420))
     }
 
     override func viewDidLoad() {
@@ -86,6 +88,23 @@ class GeneralSettingsViewController: NSViewController {
 
         stackView.addArrangedSubview(updateSection)
 
+        // Recent file count section
+        let recentSection = createSectionView()
+        recentFileCountField.isBezeled = true
+        recentFileCountField.drawsBackground = true
+        recentFileCountField.isEditable = true
+        recentFileCountField.isSelectable = true
+        recentFileCountField.bezelStyle = .roundedBezel
+        recentFileCountField.delegate = self
+        recentFileCountField.placeholderString = "20"
+        recentFileCountField.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            recentFileCountField.widthAnchor.constraint(equalToConstant: 60)
+        ])
+        let recentRow = createRowView(label: recentFileCountLabel, control: recentFileCountField)
+        recentSection.addArrangedSubview(recentRow)
+        stackView.addArrangedSubview(recentSection)
+
         view.addSubview(stackView)
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
@@ -104,6 +123,7 @@ class GeneralSettingsViewController: NSViewController {
         countdownLabel.stringValue = L("settings.general.countdown")
         updateFrequencyLabel.stringValue = L("settings.general.updateFrequency")
         checkUpdateButton.title = L("settings.general.checkForUpdates")
+        recentFileCountLabel.stringValue = L("settings.general.recentFileCount")
         quitCheckbox.title = L("settings.general.quitAfterLastWindow")
         dontHideCheckbox.title = L("settings.general.dontHideWindow")
 
@@ -171,6 +191,9 @@ class GeneralSettingsViewController: NSViewController {
                 break
             }
         }
+
+        // Recent file count
+        recentFileCountField.stringValue = String(Settings.shared.recentFileCount)
     }
 
     @objc private func languagePopupChanged() {
@@ -249,5 +272,24 @@ class GeneralSettingsViewController: NSViewController {
         ])
 
         return container
+    }
+}
+
+// MARK: - NSTextFieldDelegate
+
+extension GeneralSettingsViewController: NSTextFieldDelegate {
+    func controlTextDidChange(_ obj: Notification) {
+        guard let textField = obj.object as? NSTextField, textField == recentFileCountField else { return }
+        let value = Int(textField.stringValue) ?? 20
+        let clampedValue = max(1, min(100, value))
+        Settings.shared.recentFileCount = clampedValue
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        guard let textField = obj.object as? NSTextField, textField == recentFileCountField else { return }
+        let value = Int(textField.stringValue) ?? 20
+        let clampedValue = max(1, min(100, value))
+        textField.stringValue = String(clampedValue)
+        Settings.shared.recentFileCount = clampedValue
     }
 }

@@ -6,6 +6,8 @@ import AppKit
 /// Builds the app's main menu programmatically.
 class MenuBuilder {
 
+    private static weak var openRecentMenu: NSMenu?
+
     static func build() {
         rebuild()
         NotificationCenter.default.addObserver(
@@ -14,6 +16,15 @@ class MenuBuilder {
             queue: .main
         ) { _ in
             rebuild()
+        }
+        NotificationCenter.default.addObserver(
+            forName: .recentFilesChanged,
+            object: nil,
+            queue: .main
+        ) { _ in
+            if let menu = openRecentMenu {
+                updateOpenRecentMenu(menu)
+            }
         }
     }
 
@@ -103,6 +114,15 @@ class MenuBuilder {
         open.target = AppActions.shared
         menu.addItem(open)
 
+        // Open Recent submenu
+        let openRecentItem = NSMenuItem(title: L("menu.file.openRecent"), action: nil, keyEquivalent: "")
+        let recentMenu = NSMenu()
+        recentMenu.autoenablesItems = false
+        updateOpenRecentMenu(recentMenu)
+        openRecentItem.submenu = recentMenu
+        openRecentMenu = recentMenu
+        menu.addItem(openRecentItem)
+
         let append = NSMenuItem(title: L("menu.file.appendVideo"),
                                 action: #selector(AppActions.appendVideo),
                                 keyEquivalent: "o")
@@ -124,6 +144,32 @@ class MenuBuilder {
 
         item.submenu = menu
         return item
+    }
+
+    private static func updateOpenRecentMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        let recentFiles = Settings.shared.recentFiles
+        if recentFiles.isEmpty {
+            let emptyItem = NSMenuItem(title: L("menu.file.openRecent.empty"), action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            menu.addItem(emptyItem)
+        } else {
+            for url in recentFiles {
+                let item = NSMenuItem(title: url.lastPathComponent, action: #selector(AppActions.openRecentFile(_:)), keyEquivalent: "")
+                item.representedObject = url
+                item.target = AppActions.shared
+                menu.addItem(item)
+            }
+        }
+
+        menu.addItem(.separator())
+
+        let clearItem = NSMenuItem(title: L("menu.file.openRecent.clear"),
+                                   action: #selector(AppActions.clearRecentFiles),
+                                   keyEquivalent: "")
+        clearItem.target = AppActions.shared
+        menu.addItem(clearItem)
     }
 
     // MARK: - Edit Menu

@@ -182,6 +182,38 @@ class Settings {
         }
         set { defaults.set(newValue.rawValue, forKey: "updateCheckFrequency") }
     }
+
+    var recentFileCount: Int {
+        get {
+            let v = defaults.integer(forKey: "recentFileCount")
+            return v > 0 ? v : 20
+        }
+        set { defaults.set(newValue, forKey: "recentFileCount") }
+    }
+
+    var recentFiles: [URL] {
+        get {
+            guard let paths = defaults.array(forKey: "recentFiles") as? [String] else { return [] }
+            return paths.map { URL(fileURLWithPath: $0) }
+        }
+        set {
+            let paths = newValue.prefix(recentFileCount).map { $0.path }
+            defaults.set(paths, forKey: "recentFiles")
+            NotificationCenter.default.post(name: .recentFilesChanged, object: nil)
+        }
+    }
+
+    func addRecentFile(_ url: URL) {
+        var files = recentFiles
+        files.removeAll { $0 == url }
+        files.insert(url, at: 0)
+        recentFiles = files
+    }
+
+    func clearRecentFiles() {
+        defaults.removeObject(forKey: "recentFiles")
+        NotificationCenter.default.post(name: .recentFilesChanged, object: nil)
+    }
 }
 
 /// Update check frequency

@@ -5,6 +5,7 @@ import AppKit
 
 extension Notification.Name {
     static let mainWindowClosed = Notification.Name("ClipForge.mainWindowClosed")
+    static let recentFilesChanged = Notification.Name("ClipForge.recentFilesChanged")
 }
 
 class MainWindowController: NSWindowController, NSWindowDelegate {

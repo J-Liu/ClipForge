@@ -17,7 +17,15 @@ extension MainViewController {
             let urls = panel.urls
             guard !urls.isEmpty else { return }
             self?.loadVideos(urls: urls)
+            if let firstURL = urls.first {
+                Settings.shared.addRecentFile(firstURL)
+            }
         }
+    }
+
+    func openFileAt(_ url: URL) {
+        loadVideos(urls: [url])
+        Settings.shared.addRecentFile(url)
     }
 
     func loadVideos(urls: [URL], preserveEdits: Bool = false) {

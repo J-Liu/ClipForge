@@ -52,6 +52,7 @@ class MainViewController: NSViewController {
     let cropOverlay = CropOverlayView()
     var videoNaturalSize: CGSize = .zero
     var cropRect: NSRect?
+    private var timeControlStatusObservation: NSKeyValueObservation?
 
     let recorder = RecorderController()
     let recordButton: NSButton = {
@@ -168,10 +169,18 @@ class MainViewController: NSViewController {
         }
 
         setupCallbacks()
+        setupTimeControlStatusObserver()
+    }
+
+    private func setupTimeControlStatusObserver() {
+        timeControlStatusObservation = playerController.player.observe(\.timeControlStatus, options: [.new, .initial]) { [weak self] _, _ in
+            self?.updatePlayButtonIcon()
+        }
     }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+        timeControlStatusObservation?.invalidate()
     }
 
     @objc private func languageChanged() {
@@ -454,7 +463,6 @@ class MainViewController: NSViewController {
             self.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
             self.updateSliderPosition(for: time)
             self.timeInputView.setTime(time)
-            self.updatePlayButtonIcon()
         }
 
         playerController.onPlaybackEnded = { [weak self] in

@@ -83,7 +83,6 @@ extension MainViewController {
     @objc func togglePlay() {
         guard requireVideoLoaded() else { return }
         playerController.togglePlay()
-        updatePlayButtonIcon()
     }
 
     func updatePlayButtonIcon() {

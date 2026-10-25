@@ -69,10 +69,17 @@ class PlayerView: NSView {
         return rect
     }
 
-    private func videoURLs(from sender: NSDraggingInfo) -> [URL] {
+    private func mediaURLs(from sender: NSDraggingInfo) -> [URL] {
         let options: [NSPasteboard.ReadingOptionKey: Any] = [
             .urlReadingFileURLsOnly: true,
-            .urlReadingContentsConformToTypes: [UTType.movie.identifier, UTType.video.identifier]
+            .urlReadingContentsConformToTypes: [
+                UTType.movie.identifier,
+                UTType.video.identifier,
+                UTType.mp3.identifier,
+                UTType.wav.identifier,
+                UTType.mpeg4Audio.identifier,
+                UTType.audio.identifier
+            ]
         ]
         guard let urls = sender.draggingPasteboard.readObjects(
             forClasses: [NSURL.self],
@@ -84,12 +91,12 @@ class PlayerView: NSView {
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        let urls = videoURLs(from: sender)
+        let urls = mediaURLs(from: sender)
         return urls.isEmpty ? [] : .copy
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        let urls = videoURLs(from: sender)
+        let urls = mediaURLs(from: sender)
         guard !urls.isEmpty else { return false }
         let replace = NSEvent.modifierFlags.contains(.command)
         onFilesDropped?(urls, replace)

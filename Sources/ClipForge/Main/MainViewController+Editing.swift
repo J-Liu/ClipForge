@@ -28,7 +28,7 @@ extension MainViewController {
 
         // Sync slider and time input
         let duration = CMTimeGetSeconds(playerController.totalDuration)
-        slider.doubleValue = t / duration
+        slider.value = t / duration
         timeInputView.setTime(current)
     }
 
@@ -53,7 +53,7 @@ extension MainViewController {
 
         // Sync slider and time input
         let duration = CMTimeGetSeconds(playerController.totalDuration)
-        slider.doubleValue = t / duration
+        slider.value = t / duration
         timeInputView.setTime(time)
     }
 
@@ -85,6 +85,7 @@ extension MainViewController {
         segmentBar.segments = newSegments
         segmentBar.totalDuration = total
         segmentBar.cutPoints = cutPoints
+        waveformView.setCutPoints(cutPoints, segments: newSegments, duration: total)
         updateSegmentListIfNeeded()
     }
 

@@ -38,6 +38,26 @@ extension MainViewController {
         rebuildSegments()
 
         guard let firstURL = urls.first else { return }
+
+        // Load waveform for audio files
+        Task {
+            do {
+                let data = try await WaveformLoader.load(from: firstURL)
+                await MainActor.run {
+                    Log("Waveform loaded: \(data.sampleCount) samples")
+                    self.waveformView.setWaveformData(data)
+                    self.updateWaveformVisibility()
+                    Log("WaveformView hidden: \(self.waveformView.isHidden), isAudioOnly: \(self.playerController.isAudioOnly)")
+                }
+            } catch {
+                await MainActor.run {
+                    Log("Waveform load failed: \(error)")
+                    self.waveformView.setWaveformData(nil)
+                    self.updateWaveformVisibility()
+                }
+            }
+        }
+
         Task {
             let asset = AVURLAsset(url: firstURL)
             if let track = try? await asset.loadTracks(withMediaType: .video).first {
@@ -45,6 +65,13 @@ extension MainViewController {
                 await MainActor.run {
                     self.videoNaturalSize = size ?? .zero
                     self.updateOverlayContentRect()
+                    self.updateWaveformVisibility()
+                }
+            } else {
+                // No video track - this is audio-only
+                await MainActor.run {
+                    self.videoNaturalSize = .zero
+                    self.updateWaveformVisibility()
                 }
             }
         }
@@ -55,6 +82,16 @@ extension MainViewController {
             playerController.seek(to: .zero)
         }
         updatePlayButtonIcon()
+    }
+
+    func updateWaveformVisibility() {
+        let isAudioOnly = playerController.isAudioOnly
+        playerView.isHidden = isAudioOnly
+        // WaveformView controls its own visibility based on having data
+        // For video files, we should hide the waveform
+        if !isAudioOnly {
+            waveformView.isHidden = true
+        }
     }
 
     @objc func appendVideo() {
@@ -91,23 +128,15 @@ extension MainViewController {
         playButton.image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
     }
 
-    @objc func sliderChanged() {
-        let event = NSApp.currentEvent
-        switch event?.type {
-        case .leftMouseDown:
-            isScrubbing = true
-        case .leftMouseUp:
-            isScrubbing = false
-        default:
-            break
-        }
-
+    func sliderValueChanged(_ value: Double) {
         let duration = CMTimeGetSeconds(playerController.totalDuration)
         guard duration > 0 else { return }
-        let target = CMTime(seconds: slider.doubleValue * duration, preferredTimescale: 600)
+
+        let target = CMTime(seconds: value * duration, preferredTimescale: 600)
         playerController.seek(to: target)
         currentTimeLabel.stringValue = TimeFormatter.displayString(from: target)
         timeInputView.setTime(target)
+        updateWaveformProgress(target)
     }
 
     @objc func dontHideChanged() {

@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 class MainViewController: NSViewController {
     let playerController = PlayerController()
     let playerView = PlayerView()
+    let waveformView = WaveformView()
 
     let openButton: NSButton = {
         let b = NSButton(image: NSImage(systemSymbolName: "folder", accessibilityDescription: L("menu.file.open"))!,
@@ -22,7 +23,7 @@ class MainViewController: NSViewController {
         b.bezelStyle = .rounded
         return b
     }()
-    let slider = NSSlider(value: 0, minValue: 0, maxValue: 1, target: nil, action: nil)
+    let slider = CustomSlider()
     let currentTimeLabel = NSTextField(labelWithString: "00:00.000")
     let durationLabel = NSTextField(labelWithString: "00:00.000")
 
@@ -211,6 +212,7 @@ class MainViewController: NSViewController {
 
     func setupUI() {
         playerView.translatesAutoresizingMaskIntoConstraints = false
+        waveformView.translatesAutoresizingMaskIntoConstraints = false
         openButton.translatesAutoresizingMaskIntoConstraints = false
         playButton.translatesAutoresizingMaskIntoConstraints = false
         slider.translatesAutoresizingMaskIntoConstraints = false
@@ -236,10 +238,15 @@ class MainViewController: NSViewController {
         playButton.target = self
         playButton.action = #selector(togglePlay)
 
-        slider.target = self
-        slider.action = #selector(sliderChanged)
-        slider.isContinuous = true
-        slider.sendAction(on: [.leftMouseDown, .leftMouseDragged, .leftMouseUp])
+        slider.onValueChanged = { [weak self] value in
+            self?.sliderValueChanged(value)
+        }
+        slider.onDragBegin = { [weak self] in
+            self?.isScrubbing = true
+        }
+        slider.onDragEnd = { [weak self] in
+            self?.isScrubbing = false
+        }
 
         currentTimeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
         durationLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
@@ -282,6 +289,10 @@ class MainViewController: NSViewController {
             self?.addCutPointAt(time)
         }
 
+        waveformView.onCutPointAdded = { [weak self] time in
+            self?.addCutPointAt(time)
+        }
+
         openButton.toolTip = L("main.tooltip.open")
         playButton.toolTip = L("main.tooltip.play")
         slider.toolTip = L("main.tooltip.scrub")
@@ -297,6 +308,7 @@ class MainViewController: NSViewController {
 
 
         view.addSubview(playerView)
+        view.addSubview(waveformView)
         view.addSubview(openButton)
         view.addSubview(playButton)
         view.addSubview(slider)
@@ -330,7 +342,7 @@ class MainViewController: NSViewController {
             self.rebuildSegments()
             let duration = CMTimeGetSeconds(self.playerController.totalDuration)
             if duration > 0 {
-                self.slider.doubleValue = CMTimeGetSeconds(time) / duration
+                self.slider.value = CMTimeGetSeconds(time) / duration
             }
             self.timeInputView.setTime(time)
             self.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
@@ -380,6 +392,11 @@ class MainViewController: NSViewController {
             playerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             playerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             playerView.bottomAnchor.constraint(equalTo: segmentBar.topAnchor, constant: -12),
+
+            waveformView.topAnchor.constraint(equalTo: playerView.topAnchor),
+            waveformView.leadingAnchor.constraint(equalTo: playerView.leadingAnchor, constant: 16),
+            waveformView.trailingAnchor.constraint(equalTo: playerView.trailingAnchor, constant: -16),
+            waveformView.bottomAnchor.constraint(equalTo: playerView.bottomAnchor),
 
             segmentBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             segmentBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -463,6 +480,7 @@ class MainViewController: NSViewController {
             self.currentTimeLabel.stringValue = TimeFormatter.displayString(from: time)
             self.updateSliderPosition(for: time)
             self.timeInputView.setTime(time)
+            self.updateWaveformProgress(time)
         }
 
         playerController.onPlaybackEnded = { [weak self] in
@@ -475,7 +493,14 @@ class MainViewController: NSViewController {
         let duration = CMTimeGetSeconds(playerController.totalDuration)
         guard duration > 0 else { return }
         let current = CMTimeGetSeconds(time)
-        slider.doubleValue = current / duration
+        slider.value = current / duration
+    }
+
+    func updateWaveformProgress(_ time: CMTime) {
+        let duration = CMTimeGetSeconds(playerController.totalDuration)
+        guard duration > 0 else { return }
+        let current = CMTimeGetSeconds(time)
+        waveformView.setProgress(current / duration)
     }
 
     override func viewDidLayout() {

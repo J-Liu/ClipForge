@@ -101,6 +101,8 @@ class MainViewController: NSViewController {
 
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
     }
 
     override func viewDidLoad() {
@@ -389,13 +391,13 @@ class MainViewController: NSViewController {
 
         NSLayoutConstraint.activate([
             playerView.topAnchor.constraint(equalTo: view.topAnchor),
-            playerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            playerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            playerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            playerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             playerView.bottomAnchor.constraint(equalTo: segmentBar.topAnchor, constant: -12),
 
             waveformView.topAnchor.constraint(equalTo: playerView.topAnchor),
-            waveformView.leadingAnchor.constraint(equalTo: playerView.leadingAnchor, constant: 16),
-            waveformView.trailingAnchor.constraint(equalTo: playerView.trailingAnchor, constant: -16),
+            waveformView.leadingAnchor.constraint(equalTo: playerView.leadingAnchor),
+            waveformView.trailingAnchor.constraint(equalTo: playerView.trailingAnchor),
             waveformView.bottomAnchor.constraint(equalTo: playerView.bottomAnchor),
 
             segmentBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),

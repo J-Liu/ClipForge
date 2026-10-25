@@ -16,9 +16,13 @@ class GeneralSettingsViewController: NSViewController {
     private let checkUpdateButton = NSButton()
     private let recentFileCountField = NSTextField()
     private let recentFileCountLabel = NSTextField(labelWithString: "")
+    private let logEnabledCheckbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let logPathField = NSTextField()
+    private let logPathLabel = NSTextField(labelWithString: "")
+    private let revealLogButton = NSButton()
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 420))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 550))
     }
 
     override func viewDidLoad() {
@@ -105,6 +109,32 @@ class GeneralSettingsViewController: NSViewController {
         recentSection.addArrangedSubview(recentRow)
         stackView.addArrangedSubview(recentSection)
 
+        // Log section
+        let logSection = createSectionView()
+        logEnabledCheckbox.target = self
+        logEnabledCheckbox.action = #selector(logEnabledCheckboxChanged)
+        logSection.addArrangedSubview(logEnabledCheckbox)
+
+        // Log path row
+        logPathField.isBezeled = false
+        logPathField.drawsBackground = true
+        logPathField.isEditable = false
+        logPathField.isSelectable = true
+        logPathField.bezelStyle = .roundedBezel
+        logPathField.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            logPathField.widthAnchor.constraint(equalToConstant: 350)
+        ])
+
+        revealLogButton.bezelStyle = .rounded
+        revealLogButton.target = self
+        revealLogButton.action = #selector(revealLogFile)
+        revealLogButton.image = NSImage(systemSymbolName: "folder", accessibilityDescription: nil)
+
+        let logPathRow = createRowView(label: logPathLabel, control: logPathField, trailingButton: revealLogButton)
+        logSection.addArrangedSubview(logPathRow)
+        stackView.addArrangedSubview(logSection)
+
         view.addSubview(stackView)
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
@@ -124,8 +154,11 @@ class GeneralSettingsViewController: NSViewController {
         updateFrequencyLabel.stringValue = L("settings.general.updateFrequency")
         checkUpdateButton.title = L("settings.general.checkForUpdates")
         recentFileCountLabel.stringValue = L("settings.general.recentFileCount")
+        logPathLabel.stringValue = L("settings.general.logPath")
+        revealLogButton.title = ""
         quitCheckbox.title = L("settings.general.quitAfterLastWindow")
         dontHideCheckbox.title = L("settings.general.dontHideWindow")
+        logEnabledCheckbox.title = L("settings.general.enableLog")
 
         languagePopup.removeAllItems()
         for lang in Language.allCases {
@@ -194,6 +227,14 @@ class GeneralSettingsViewController: NSViewController {
 
         // Recent file count
         recentFileCountField.stringValue = String(Settings.shared.recentFileCount)
+
+        // Log
+        logEnabledCheckbox.state = Settings.shared.logEnabled ? .on : .off
+        if let path = Logger.shared.logFilePath {
+            logPathField.stringValue = path
+        } else {
+            logPathField.stringValue = L("settings.general.logPath.notAvailable")
+        }
     }
 
     @objc private func languagePopupChanged() {
@@ -225,6 +266,16 @@ class GeneralSettingsViewController: NSViewController {
 
     @objc private func languageChanged() {
         updateLocalizedStrings()
+    }
+
+    @objc private func logEnabledCheckboxChanged() {
+        Settings.shared.logEnabled = (logEnabledCheckbox.state == .on)
+    }
+
+    @objc private func revealLogFile() {
+        guard let path = Logger.shared.logFilePath else { return }
+        let url = URL(fileURLWithPath: path)
+        NSWorkspace.shared.activateFileViewerSelecting([url.deletingLastPathComponent()])
     }
 
     // MARK: - Helper methods
@@ -266,6 +317,37 @@ class GeneralSettingsViewController: NSViewController {
             control.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
             control.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             control.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            container.topAnchor.constraint(equalTo: label.topAnchor),
+            container.bottomAnchor.constraint(equalTo: label.bottomAnchor)
+        ])
+
+        return container
+    }
+
+    private func createRowView(label: NSTextField, control: NSControl, trailingButton: NSButton) -> NSView {
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        label.translatesAutoresizingMaskIntoConstraints = false
+        control.translatesAutoresizingMaskIntoConstraints = false
+        trailingButton.translatesAutoresizingMaskIntoConstraints = false
+
+        container.addSubview(label)
+        container.addSubview(control)
+        container.addSubview(trailingButton)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            label.widthAnchor.constraint(equalToConstant: 180),
+
+            control.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
+            control.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+
+            trailingButton.leadingAnchor.constraint(equalTo: control.trailingAnchor, constant: 8),
+            trailingButton.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            trailingButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
             container.topAnchor.constraint(equalTo: label.topAnchor),
             container.bottomAnchor.constraint(equalTo: label.bottomAnchor)

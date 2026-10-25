@@ -231,6 +231,13 @@ class Settings {
         get { defaults.string(forKey: "audioSampleRate") ?? "hz44100" }
         set { defaults.set(newValue, forKey: "audioSampleRate") }
     }
+
+    // MARK: - Logging
+
+    var logEnabled: Bool {
+        get { defaults.bool(forKey: "logEnabled") }
+        set { defaults.set(newValue, forKey: "logEnabled") }
+    }
 }
 
 /// Update check frequency

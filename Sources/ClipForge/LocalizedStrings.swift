@@ -27,6 +27,9 @@ let enStrings: [String: String] = [
     "settings.general.updateFrequency.never": "Never",
     "settings.general.checkForUpdates": "Check Now",
     "settings.general.recentFileCount": "Number of recent items",
+    "settings.general.enableLog": "Enable logging",
+    "settings.general.logPath": "Log file",
+    "settings.general.logPath.notAvailable": "Not available",
 
     // Settings - Recording
     "settings.recording.defaultMode": "Default Mode",
@@ -246,6 +249,9 @@ let zhHansStrings: [String: String] = [
     "settings.general.updateFrequency.never": "从不",
     "settings.general.checkForUpdates": "立即检查",
     "settings.general.recentFileCount": "最近项目数量",
+    "settings.general.enableLog": "启用日志",
+    "settings.general.logPath": "日志文件",
+    "settings.general.logPath.notAvailable": "不可用",
 
     // Settings - Recording
     "settings.recording.defaultMode": "默认模式",
@@ -465,6 +471,9 @@ let zhHantStrings: [String: String] = [
     "settings.general.updateFrequency.never": "從不",
     "settings.general.checkForUpdates": "立即檢查",
     "settings.general.recentFileCount": "最近項目數量",
+    "settings.general.enableLog": "啟用日誌",
+    "settings.general.logPath": "日誌檔案",
+    "settings.general.logPath.notAvailable": "不可用",
 
     // Settings - Recording
     "settings.recording.defaultMode": "預設模式",

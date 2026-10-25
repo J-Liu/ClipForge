@@ -83,6 +83,8 @@ let enStrings: [String: String] = [
     "export.mp4h264": "MP4 (H.264)",
     "export.mp4h265": "MP4 (H.265)",
     "export.mov": "MOV",
+    "export.bitRate": "Bit Rate",
+    "export.sampleRate": "Sample Rate",
 
     // Menu - App
     "menu.app.about": "About %@",
@@ -300,6 +302,8 @@ let zhHansStrings: [String: String] = [
     "export.mp4h264": "MP4 (H.264)",
     "export.mp4h265": "MP4 (H.265)",
     "export.mov": "MOV",
+    "export.bitRate": "比特率",
+    "export.sampleRate": "采样率",
 
     // Menu - App
     "menu.app.about": "关于 %@",
@@ -517,6 +521,8 @@ let zhHantStrings: [String: String] = [
     "export.mp4h264": "MP4 (H.264)",
     "export.mp4h265": "MP4 (H.265)",
     "export.mov": "MOV",
+    "export.bitRate": "比特率",
+    "export.sampleRate": "采样率",
 
     // Menu - App
     "menu.app.about": "關於 %@",

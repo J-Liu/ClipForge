@@ -36,6 +36,142 @@ class CompositionBuilder {
         }
     }
 
+    /// Export audio-only clips.
+    static func exportAudio(
+        clips: [VideoClip],
+        segments: [Segment],
+        format: AudioExportFormat,
+        bitRate: AudioBitRate,
+        sampleRate: AudioSampleRate,
+        outputURL: URL,
+        progress: @escaping (Double) -> Void,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        let kept = segments.filter { $0.isKept }.sorted {
+            CMTimeCompare($0.start, $1.start) < 0
+        }
+        guard !kept.isEmpty else {
+            completion(.failure(BuildError.noKeptSegments))
+            return
+        }
+
+        let timeline = TimelineModel()
+        timeline.setClipsSync(clips)
+
+        let composition = AVMutableComposition()
+
+        Task {
+            do {
+                let compositionAudioTrack = composition.addMutableTrack(
+                    withMediaType: .audio,
+                    preferredTrackID: kCMPersistentTrackID_Invalid
+                )
+
+                var audioTrackCache: [URL: AVAssetTrack] = [:]
+                var cursor = CMTime.zero
+
+                for segment in kept {
+                    let pieces = timeline.localRanges(for: segment.range)
+                    for piece in pieces {
+                        let url = piece.clip.url
+                        let asset = AVURLAsset(url: url)
+
+                        let audioTrack: AVAssetTrack?
+                        if let cached = audioTrackCache[url] {
+                            audioTrack = cached
+                        } else {
+                            audioTrack = try await asset.loadTracks(withMediaType: .audio).first
+                            if let t = audioTrack { audioTrackCache[url] = t }
+                        }
+
+                        if let audioTrack = audioTrack {
+                            try compositionAudioTrack?.insertTimeRange(
+                                piece.range,
+                                of: audioTrack,
+                                at: cursor
+                            )
+                        }
+                        cursor = CMTimeAdd(cursor, piece.range.duration)
+                    }
+                }
+
+                runAudioExport(
+                    composition: composition,
+                    format: format,
+                    bitRate: bitRate,
+                    sampleRate: sampleRate,
+                    outputURL: outputURL,
+                    progress: progress,
+                    completion: completion
+                )
+            } catch {
+                await MainActor.run {
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+
+    private static func runAudioExport(
+        composition: AVMutableComposition,
+        format: AudioExportFormat,
+        bitRate: AudioBitRate,
+        sampleRate: AudioSampleRate,
+        outputURL: URL,
+        progress: @escaping (Double) -> Void,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        try? FileManager.default.removeItem(at: outputURL)
+
+        guard let session = AVAssetExportSession(
+            asset: composition,
+            presetName: format.exportPreset
+        ) else {
+            completion(.failure(BuildError.exportFailed(L("internalError.cannotCreateExportSession"))))
+            return
+        }
+
+        session.outputURL = outputURL
+        session.outputFileType = format.fileType
+        session.audioTimePitchAlgorithm = .spectral
+
+        MainViewController.exportSession = session
+
+        var timer: Timer?
+        DispatchQueue.main.async {
+            timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                let p = Double(session.progress)
+                progress(p)
+            }
+            if let t = timer {
+                RunLoop.main.add(t, forMode: .common)
+            }
+        }
+
+        session.exportAsynchronously {
+            DispatchQueue.main.async {
+                timer?.invalidate()
+                timer = nil
+                MainViewController.exportSession = nil
+            }
+            DispatchQueue.main.async {
+                switch session.status {
+                case .completed:
+                    progress(1.0)
+                    completion(.success(()))
+                case .cancelled:
+                    completion(.failure(BuildError.exportCancelled))
+                case .failed:
+                    completion(.failure(BuildError.exportFailed(
+                        session.error?.localizedDescription ?? L("internalError.unknownError")
+                    )))
+                default:
+                    completion(.failure(BuildError.exportFailed(L("internalError.cannotCreateExportSession"))))
+                }
+            }
+        }
+    }
+
     /// Export kept segments to the given output URL.
     /// - Parameters:
     ///   - clips: all loaded video clips (with their URLs and timeline positions)

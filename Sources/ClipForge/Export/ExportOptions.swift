@@ -85,3 +85,90 @@ enum ExportFormat: String, CaseIterable {
         }
     }
 }
+
+// MARK: - Audio Export Options
+
+enum AudioExportFormat: String, CaseIterable {
+    case mp3
+    case aac
+    case wav
+
+    var localizedName: String {
+        switch self {
+        case .mp3: return "MP3"
+        case .aac: return "AAC (M4A)"
+        case .wav: return "WAV"
+        }
+    }
+
+    var fileType: AVFileType {
+        switch self {
+        case .mp3: return .mp3
+        case .aac: return .m4a
+        case .wav: return .wav
+        }
+    }
+
+    var fileExtension: String {
+        switch self {
+        case .mp3: return "mp3"
+        case .aac: return "m4a"
+        case .wav: return "wav"
+        }
+    }
+
+    var exportPreset: String {
+        switch self {
+        case .mp3: return AVAssetExportPresetPassthrough  // Will convert manually
+        case .aac: return AVAssetExportPresetAppleM4A
+        case .wav: return AVAssetExportPresetPassthrough
+        }
+    }
+}
+
+enum AudioBitRate: String, CaseIterable {
+    case k128
+    case k192
+    case k256
+    case k320
+
+    var localizedName: String {
+        switch self {
+        case .k128: return "128 kbps"
+        case .k192: return "192 kbps"
+        case .k256: return "256 kbps"
+        case .k320: return "320 kbps"
+        }
+    }
+
+    var value: Int {
+        switch self {
+        case .k128: return 128_000
+        case .k192: return 192_000
+        case .k256: return 256_000
+        case .k320: return 320_000
+        }
+    }
+}
+
+enum AudioSampleRate: String, CaseIterable {
+    case hz44100
+    case hz48000
+    case hz96000
+
+    var localizedName: String {
+        switch self {
+        case .hz44100: return "44.1 kHz"
+        case .hz48000: return "48 kHz"
+        case .hz96000: return "96 kHz"
+        }
+    }
+
+    var value: Double {
+        switch self {
+        case .hz44100: return 44100
+        case .hz48000: return 48000
+        case .hz96000: return 96000
+        }
+    }
+}

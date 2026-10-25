@@ -15,53 +15,159 @@ extension MainViewController {
 
         let panel = NSSavePanel()
 
-        let format = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
-        let exportExtension = format.fileExtension
+        // Determine if this is audio-only content
+        let isAudioOnly = playerController.isAudioOnly
 
-        // Determine default filename based on original file and export format
-        let firstURL = playerController.urls.first!
-        let originalExtension = firstURL.pathExtension.lowercased()
-        let originalName = firstURL.deletingPathExtension().lastPathComponent
+        if isAudioOnly {
+            // Audio export
+            let format = AudioExportFormat(rawValue: Settings.shared.audioExportFormat) ?? .aac
+            let exportExtension = format.fileExtension
 
-        let defaultName: String
-        if (originalExtension == "mp4" && exportExtension == "mov") ||
-           (originalExtension == "mov" && exportExtension == "mp4") {
-            // Different format: use original filename with new extension
-            defaultName = "\(originalName).\(exportExtension)"
-        } else if originalExtension == exportExtension {
-            // Same format: add ClipForge suffix with timestamp
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyyMMdd-HHmmss"
-            let timestamp = formatter.string(from: Date())
-            defaultName = "\(originalName)-ClipForge-\(timestamp).\(exportExtension)"
+            let firstURL = playerController.urls.first!
+            let originalName = firstURL.deletingPathExtension().lastPathComponent
+            let defaultName = "\(originalName)-ClipForge.\(exportExtension)"
+
+            panel.nameFieldStringValue = defaultName
+            switch format {
+            case .mp3:
+                panel.allowedContentTypes = [.mp3]
+            case .aac:
+                panel.allowedContentTypes = [.mpeg4Audio]
+            case .wav:
+                panel.allowedContentTypes = [.wav]
+            }
+            panel.canCreateDirectories = true
+
+            let optionsView = AudioExportOptionsView(frame: NSRect(x: 0, y: 0, width: 280, height: 120))
+            panel.accessoryView = optionsView
+
+            panel.begin { [weak self] response in
+                guard response == .OK, var outputURL = panel.url else { return }
+                let selectedFormat = AudioExportFormat(rawValue: Settings.shared.audioExportFormat) ?? .aac
+                outputURL.deletePathExtension()
+                outputURL.appendPathExtension(selectedFormat.fileExtension)
+                self?.performAudioExport(outputURL: outputURL)
+            }
         } else {
-            // Other cases: use ClipForge prefix with timestamp
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyyMMdd-HHmmss"
-            let timestamp = formatter.string(from: Date())
-            defaultName = "ClipForge-\(timestamp).\(exportExtension)"
+            // Video export
+            let format = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
+            let exportExtension = format.fileExtension
+
+            let firstURL = playerController.urls.first!
+            let originalExtension = firstURL.pathExtension.lowercased()
+            let originalName = firstURL.deletingPathExtension().lastPathComponent
+
+            let defaultName: String
+            if (originalExtension == "mp4" && exportExtension == "mov") ||
+               (originalExtension == "mov" && exportExtension == "mp4") {
+                defaultName = "\(originalName).\(exportExtension)"
+            } else if originalExtension == exportExtension {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyyMMdd-HHmmss"
+                let timestamp = formatter.string(from: Date())
+                defaultName = "\(originalName)-ClipForge-\(timestamp).\(exportExtension)"
+            } else {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyyMMdd-HHmmss"
+                let timestamp = formatter.string(from: Date())
+                defaultName = "ClipForge-\(timestamp).\(exportExtension)"
+            }
+
+            panel.nameFieldStringValue = defaultName
+            switch format {
+            case .mov:
+                panel.allowedContentTypes = [.quickTimeMovie]
+            default:
+                panel.allowedContentTypes = [.mpeg4Movie]
+            }
+            panel.canCreateDirectories = true
+
+            let optionsView = ExportOptionsView(frame: NSRect(x: 0, y: 0, width: 280, height: 140))
+            panel.accessoryView = optionsView
+
+            panel.begin { [weak self] response in
+                guard response == .OK, var outputURL = panel.url else { return }
+                let selectedFormat = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
+                outputURL.deletePathExtension()
+                outputURL.appendPathExtension(selectedFormat.fileExtension)
+                self?.performExport(outputURL: outputURL)
+            }
+        }
+    }
+
+    func performAudioExport(outputURL: URL) {
+        playerController.pause()
+
+        let format = AudioExportFormat(rawValue: Settings.shared.audioExportFormat) ?? .aac
+        let bitRate = AudioBitRate(rawValue: Settings.shared.audioBitRate) ?? .k256
+        let sampleRate = AudioSampleRate(rawValue: Settings.shared.audioSampleRate) ?? .hz44100
+
+        let progressSheet = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 320, height: 140),
+                                      styleMask: [.titled],
+                                      backing: .buffered,
+                                      defer: false)
+        progressSheet.title = L("alert.exporting", 0)
+        progressSheet.isReleasedWhenClosed = false
+
+        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 140))
+        progressSheet.contentView = containerView
+
+        let messageLabel = NSTextField(labelWithString: L("alert.exporting.message"))
+        messageLabel.frame = NSRect(x: 20, y: 100, width: 280, height: 20)
+        messageLabel.textColor = .secondaryLabelColor
+        messageLabel.font = .systemFont(ofSize: 12)
+
+        let progressBar = NSProgressIndicator(frame: NSRect(x: 20, y: 65, width: 280, height: 20))
+        progressBar.style = .bar
+        progressBar.minValue = 0
+        progressBar.maxValue = 100
+        progressBar.doubleValue = 0
+        progressBar.isIndeterminate = false
+
+        let cancelButton = NSButton(frame: NSRect(x: 120, y: 20, width: 80, height: 24))
+        cancelButton.title = L("alert.cancel")
+        cancelButton.bezelStyle = .rounded
+        cancelButton.target = self
+        cancelButton.action = #selector(cancelExport)
+
+        containerView.addSubview(messageLabel)
+        containerView.addSubview(progressBar)
+        containerView.addSubview(cancelButton)
+
+        guard let window = view.window else { return }
+        window.beginSheet(progressSheet) { [weak self] _ in
+            self?.cleanupExportSheet(progressSheet)
         }
 
-        panel.nameFieldStringValue = defaultName
-        switch format {
-        case .mov:
-            panel.allowedContentTypes = [.quickTimeMovie]
-        default:
-            panel.allowedContentTypes = [.mpeg4Movie]
-        }
-        panel.canCreateDirectories = true
-
-        let optionsView = ExportOptionsView(frame: NSRect(x: 0, y: 0, width: 280, height: 140))
-        panel.accessoryView = optionsView
-
-        panel.begin { [weak self] response in
-            guard response == .OK, var outputURL = panel.url else { return }
-            // Ensure the file extension matches the selected format
-            let selectedFormat = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
-            outputURL.deletePathExtension()
-            outputURL.appendPathExtension(selectedFormat.fileExtension)
-            self?.performExport(outputURL: outputURL)
-        }
+        CompositionBuilder.exportAudio(
+            clips: playerController.clips,
+            segments: segments,
+            format: format,
+            bitRate: bitRate,
+            sampleRate: sampleRate,
+            outputURL: outputURL,
+            progress: { [weak progressBar, weak progressSheet] value in
+                DispatchQueue.main.async {
+                    let percent = Int(value * 100)
+                    progressBar?.doubleValue = Double(percent)
+                    progressSheet?.title = L("alert.exporting", percent)
+                }
+            },
+            completion: { [weak self, weak progressSheet, weak window] result in
+                DispatchQueue.main.async {
+                    if let sheet = progressSheet, let w = window {
+                        w.endSheet(sheet)
+                    }
+                    switch result {
+                    case .success:
+                        self?.showAlert(title: L("alert.exportComplete.title"),
+                                        message: outputURL.lastPathComponent)
+                    case .failure(let error):
+                        self?.showError(error)
+                    }
+                }
+            }
+        )
     }
 
     func performExport(outputURL: URL) {

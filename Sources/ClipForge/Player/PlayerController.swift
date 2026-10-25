@@ -13,6 +13,9 @@ class PlayerController {
     /// Global timeline duration (sum of all videos).
     private(set) var totalDuration: CMTime = .zero
 
+    /// Whether loaded content is audio-only (no video tracks).
+    private(set) var isAudioOnly: Bool = false
+
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
 
@@ -52,6 +55,7 @@ class PlayerController {
         self.durations = []
         self.currentIndex = 0
         self.totalDuration = .zero
+        self.isAudioOnly = false
 
         guard !urls.isEmpty else {
             player.replaceCurrentItem(with: nil)
@@ -63,6 +67,7 @@ class PlayerController {
             var loadedDurations: [CMTime] = []
             var total = CMTime.zero
             var failedCount = 0
+            var hasVideo = false
 
             for url in urls {
                 let asset = AVURLAsset(url: url)
@@ -72,6 +77,14 @@ class PlayerController {
                     loadedURLs.append(url)
                     loadedDurations.append(d)
                     total = CMTimeAdd(total, d)
+
+                    // Check if this asset has video tracks
+                    if !hasVideo {
+                        if let tracks = try? await asset.loadTracks(withMediaType: .video),
+                           !tracks.isEmpty {
+                            hasVideo = true
+                        }
+                    }
                 } else {
                     NSLog("Skipping unloadable video: \(url)")
                     failedCount += 1
@@ -82,11 +95,13 @@ class PlayerController {
             let finalDurations = loadedDurations
             let finalTotal = total
             let finalFailed = failedCount
+            let finalHasVideo = hasVideo
 
             await MainActor.run {
                 self.urls = finalURLs
                 self.durations = finalDurations
                 self.totalDuration = finalTotal
+                self.isAudioOnly = !finalHasVideo
                 if !finalURLs.isEmpty {
                     self.playItem(at: 0, seekTo: .zero)
                     self.addObservers()

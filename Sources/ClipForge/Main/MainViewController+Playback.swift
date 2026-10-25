@@ -8,7 +8,7 @@ extension MainViewController {
 
     @objc func openFile() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.movie, .video, .mpeg4Movie, .quickTimeMovie]
+        panel.allowedContentTypes = [.movie, .video, .mpeg4Movie, .quickTimeMovie, .mp3, .wav, .audio]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
 

@@ -214,6 +214,23 @@ class Settings {
         defaults.removeObject(forKey: "recentFiles")
         NotificationCenter.default.post(name: .recentFilesChanged, object: nil)
     }
+
+    // MARK: - Audio Export Settings
+
+    var audioExportFormat: String {
+        get { defaults.string(forKey: "audioExportFormat") ?? "aac" }
+        set { defaults.set(newValue, forKey: "audioExportFormat") }
+    }
+
+    var audioBitRate: String {
+        get { defaults.string(forKey: "audioBitRate") ?? "k256" }
+        set { defaults.set(newValue, forKey: "audioBitRate") }
+    }
+
+    var audioSampleRate: String {
+        get { defaults.string(forKey: "audioSampleRate") ?? "hz44100" }
+        set { defaults.set(newValue, forKey: "audioSampleRate") }
+    }
 }
 
 /// Update check frequency

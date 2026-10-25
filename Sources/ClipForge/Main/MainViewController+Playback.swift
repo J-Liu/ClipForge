@@ -39,6 +39,19 @@ extension MainViewController {
 
         guard let firstURL = urls.first else { return }
 
+        // Set default audio export format based on source file extension
+        let ext = firstURL.pathExtension.lowercased()
+        switch ext {
+        case "mp3":
+            Settings.shared.audioExportFormat = "mp3"
+        case "m4a", "aac":
+            Settings.shared.audioExportFormat = "aac"
+        case "wav":
+            Settings.shared.audioExportFormat = "wav"
+        default:
+            break  // Keep current setting
+        }
+
         // Load waveform for audio files
         Task {
             do {

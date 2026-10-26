@@ -211,4 +211,9 @@ extension MainViewController {
               let mode = RecordingMode(rawValue: raw) else { return }
         setRecordingMode(mode)
     }
+
+    func activateWindow() {
+        view.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
 }

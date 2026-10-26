@@ -52,12 +52,14 @@ enum ExportFrameRate: String, CaseIterable {
 }
 
 enum ExportFormat: String, CaseIterable {
+    case passthrough
     case mp4h264
     case mp4h265
     case mov
 
     var localizedName: String {
         switch self {
+        case .passthrough: return L("export.passthrough")
         case .mp4h264: return L("export.mp4h264")
         case .mp4h265: return L("export.mp4h265")
         case .mov: return L("export.mov")
@@ -66,20 +68,21 @@ enum ExportFormat: String, CaseIterable {
 
     var fileType: AVFileType {
         switch self {
-        case .mp4h264, .mp4h265: return .mp4
+        case .passthrough, .mp4h264, .mp4h265: return .mp4
         case .mov: return .mov
         }
     }
 
     var fileExtension: String {
         switch self {
-        case .mp4h264, .mp4h265: return "mp4"
+        case .passthrough, .mp4h264, .mp4h265: return "mp4"
         case .mov: return "mov"
         }
     }
 
     var exportPreset: String {
         switch self {
+        case .passthrough: return AVAssetExportPresetPassthrough
         case .mp4h265: return AVAssetExportPresetHEVCHighestQuality
         default: return AVAssetExportPresetHighestQuality
         }

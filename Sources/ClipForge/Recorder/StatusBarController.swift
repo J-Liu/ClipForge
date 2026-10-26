@@ -24,6 +24,8 @@ class StatusBarController {
     var onStop: (() -> Void)?
     /// Called when the user toggles pause.
     var onTogglePause: (() -> Void)?
+    /// Called when the user clicks in idle state (bring window to front).
+    var onActivateWindow: (() -> Void)?
 
     private(set) var state: State = .idle
 
@@ -42,7 +44,7 @@ class StatusBarController {
     @objc private func handleButtonClick() {
         switch state {
         case .idle:
-            break
+            onActivateWindow?()
         case .countdown:
             onCancel?()
         case .recording:

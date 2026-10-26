@@ -150,7 +150,7 @@ class Settings {
     }
 
     var exportFormat: String {
-        get { defaults.string(forKey: "exportFormat") ?? "mp4h264" }
+        get { defaults.string(forKey: "exportFormat") ?? "passthrough" }
         set { defaults.set(newValue, forKey: "exportFormat") }
     }
 

@@ -135,6 +135,9 @@ class MainViewController: NSViewController {
         statusBar.onTogglePause = { [weak self] in
             self?.togglePauseRecording()
         }
+        statusBar.onActivateWindow = { [weak self] in
+            self?.activateWindow()
+        }
 
         playerController.onClipsLoaded = { [weak self] in
             guard let self else { return }

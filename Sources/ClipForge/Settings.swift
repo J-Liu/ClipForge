@@ -149,6 +149,11 @@ class Settings {
         set { defaults.set(newValue, forKey: "exportFrameRate") }
     }
 
+    var videoBitRate: String {
+        get { defaults.string(forKey: "videoBitRate") ?? "original" }
+        set { defaults.set(newValue, forKey: "videoBitRate") }
+    }
+
     var exportFormat: String {
         get { defaults.string(forKey: "exportFormat") ?? "passthrough" }
         set { defaults.set(newValue, forKey: "exportFormat") }

@@ -8,6 +8,7 @@ class ExportOptionsView: NSView {
     private let resolutionPopup = NSPopUpButton()
     private let frameRatePopup = NSPopUpButton()
     private let formatPopup = NSPopUpButton()
+    private let bitRatePopup = NSPopUpButton()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -46,6 +47,12 @@ class ExportOptionsView: NSView {
         formatPopup.target = self
         formatPopup.action = #selector(formatChanged)
         stackView.addArrangedSubview(createRowView(label: formatLabel, control: formatPopup))
+
+        // Bit rate row
+        let bitRateLabel = createLabel(L("export.bitRate"))
+        bitRatePopup.target = self
+        bitRatePopup.action = #selector(bitRateChanged)
+        stackView.addArrangedSubview(createRowView(label: bitRateLabel, control: bitRatePopup))
 
         addSubview(stackView)
         NSLayoutConstraint.activate([
@@ -102,10 +109,15 @@ class ExportOptionsView: NSView {
             formatPopup.addItem(withTitle: f.localizedName)
             formatPopup.lastItem?.representedObject = f.rawValue
         }
+        for b in VideoBitRate.allCases {
+            bitRatePopup.addItem(withTitle: b.localizedName)
+            bitRatePopup.lastItem?.representedObject = b.rawValue
+        }
 
         selectPopupItem(resolutionPopup, withValue: UserDefaults.standard.string(forKey: "exportResolution") ?? "original")
         selectPopupItem(frameRatePopup, withValue: UserDefaults.standard.string(forKey: "exportFrameRate") ?? "original")
-        selectPopupItem(formatPopup, withValue: UserDefaults.standard.string(forKey: "exportFormat") ?? "mp4h264")
+        selectPopupItem(formatPopup, withValue: UserDefaults.standard.string(forKey: "exportFormat") ?? "passthrough")
+        selectPopupItem(bitRatePopup, withValue: Settings.shared.videoBitRate)
     }
 
     private func selectPopupItem(_ popup: NSPopUpButton, withValue value: String) {
@@ -130,5 +142,10 @@ class ExportOptionsView: NSView {
     @objc private func formatChanged() {
         guard let value = formatPopup.selectedItem?.representedObject as? String else { return }
         UserDefaults.standard.set(value, forKey: "exportFormat")
+    }
+
+    @objc private func bitRateChanged() {
+        guard let value = bitRatePopup.selectedItem?.representedObject as? String else { return }
+        Settings.shared.videoBitRate = value
     }
 }

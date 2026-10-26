@@ -187,6 +187,7 @@ class CompositionBuilder {
         resolution: ExportResolution,
         frameRate: ExportFrameRate,
         format: ExportFormat,
+        videoBitRate: VideoBitRate,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -287,10 +288,23 @@ class CompositionBuilder {
                     targetFPS: frameRate.value
                 )
 
+                // Get source video bitrate for "Original" option
+                var sourceBitRate: Int = 10_000_000 // Default fallback
+                if let firstClip = clips.first {
+                    let sourceAsset = AVAsset(url: firstClip.url)
+                    if let videoTrack = try? await sourceAsset.loadTracks(withMediaType: .video).first {
+                        if let rate = try? await videoTrack.load(.estimatedDataRate) {
+                            sourceBitRate = Int(rate)
+                        }
+                    }
+                }
+
                 runExport(
                     composition: composition,
                     videoComposition: videoComposition,
                     format: format,
+                    videoBitRate: videoBitRate,
+                    sourceBitRate: sourceBitRate,
                     outputURL: outputURL,
                     progress: progress,
                     completion: completion
@@ -380,6 +394,8 @@ class CompositionBuilder {
         composition: AVMutableComposition,
         videoComposition: AVMutableVideoComposition?,
         format: ExportFormat,
+        videoBitRate: VideoBitRate,
+        sourceBitRate: Int,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -387,22 +403,59 @@ class CompositionBuilder {
         // Remove existing file at destination.
         try? FileManager.default.removeItem(at: outputURL)
 
+        // Can use passthrough only if: format == passthrough AND no crop AND bitrate is original
+        let canPassthrough = format == .passthrough && videoComposition == nil && videoBitRate == .original
+
+        if canPassthrough {
+            // Direct passthrough - no re-encoding needed
+            runPassthroughExport(
+                composition: composition,
+                outputURL: outputURL,
+                progress: progress,
+                completion: completion
+            )
+            return
+        }
+
+        // Determine target bitrate
+        let targetBitRate: Int
+        if let bitRate = videoBitRate.value {
+            targetBitRate = bitRate
+        } else {
+            // Original - use source bitrate
+            targetBitRate = sourceBitRate
+        }
+
+        // Use AVAssetWriter for re-encoding with bitrate control
+        runExportWithWriter(
+            composition: composition,
+            videoComposition: videoComposition,
+            format: format,
+            targetBitRate: targetBitRate,
+            outputURL: outputURL,
+            progress: progress,
+            completion: completion
+        )
+    }
+
+    /// Direct passthrough export - no re-encoding
+    private static func runPassthroughExport(
+        composition: AVMutableComposition,
+        outputURL: URL,
+        progress: @escaping (Double) -> Void,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
         guard let session = AVAssetExportSession(
             asset: composition,
-            presetName: format.exportPreset
+            presetName: AVAssetExportPresetPassthrough
         ) else {
             completion(.failure(BuildError.exportFailed(L("internalError.cannotCreateExportSession"))))
             return
         }
 
         session.outputURL = outputURL
-        session.outputFileType = format.fileType
+        session.outputFileType = .mp4
         session.shouldOptimizeForNetworkUse = true
-
-        // Attach the crop composition if present.
-        if let videoComposition = videoComposition {
-            session.videoComposition = videoComposition
-        }
 
         // Store session for cancellation
         MainViewController.exportSession = session
@@ -438,6 +491,238 @@ class CompositionBuilder {
                     )))
                 default:
                     completion(.failure(BuildError.exportFailed(L("internalError.cannotCreateExportSession"))))
+                }
+            }
+        }
+    }
+
+    /// Export using AVAssetWriter for precise bitrate control.
+    private static func runExportWithWriter(
+        composition: AVMutableComposition,
+        videoComposition: AVMutableVideoComposition?,
+        format: ExportFormat,
+        targetBitRate: Int,
+        outputURL: URL,
+        progress: @escaping (Double) -> Void,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        // Wrapper to hold writer/reader references for Sendable closure
+        final class ExportContext: @unchecked Sendable {
+            var writer: AVAssetWriter?
+            var reader: AVAssetReader?
+            var videoInput: AVAssetWriterInput?
+            var audioInput: AVAssetWriterInput?
+            var videoOutput: AVAssetReaderOutput?
+            var audioOutput: AVAssetReaderAudioMixOutput?
+        }
+
+        let ctx = ExportContext()
+
+        // Use asset reader/writer for precise control
+        Task.detached {
+            do {
+                // Get video track
+                guard let videoTrack = composition.tracks(withMediaType: .video).first else {
+                    await MainActor.run { completion(.failure(BuildError.trackLoadFailed)) }
+                    return
+                }
+
+                // Determine output size
+                let outputSize: CGSize
+                if let videoComposition = videoComposition {
+                    outputSize = videoComposition.renderSize
+                } else {
+                    outputSize = videoTrack.naturalSize
+                }
+
+                // Create asset writer
+                let writer = try AVAssetWriter(outputURL: outputURL, fileType: format.fileType)
+                ctx.writer = writer
+
+                // Video settings with target bitrate
+                let videoSettings: [String: Any] = [
+                    AVVideoCodecKey: AVVideoCodecType.h264,
+                    AVVideoWidthKey: Int(outputSize.width),
+                    AVVideoHeightKey: Int(outputSize.height),
+                    AVVideoCompressionPropertiesKey: [
+                        AVVideoAverageBitRateKey: targetBitRate,
+                        AVVideoExpectedSourceFrameRateKey: 30,
+                        AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel
+                    ]
+                ]
+
+                let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+                videoInput.expectsMediaDataInRealTime = false
+                ctx.videoInput = videoInput
+
+                guard writer.canAdd(videoInput) else {
+                    await MainActor.run { completion(.failure(BuildError.exportFailed("Cannot add video input to writer"))) }
+                    return
+                }
+                writer.add(videoInput)
+
+                // Audio input (passthrough)
+                let audioTracks = composition.tracks(withMediaType: .audio)
+                if !audioTracks.isEmpty {
+                    let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
+                    if writer.canAdd(audioInput) {
+                        writer.add(audioInput)
+                        ctx.audioInput = audioInput
+                    }
+                }
+
+                // Create asset reader
+                let reader = try AVAssetReader(asset: composition)
+                ctx.reader = reader
+
+                // Video output - use video composition output for cropping support
+                let videoOutput: AVAssetReaderOutput
+                if let videoComposition = videoComposition {
+                    // AVAssetReaderVideoCompositionOutput applies the video composition
+                    let compositionOutput = AVAssetReaderVideoCompositionOutput(
+                        videoTracks: [videoTrack],
+                        videoSettings: [
+                            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB
+                        ]
+                    )
+                    compositionOutput.videoComposition = videoComposition
+                    videoOutput = compositionOutput
+                } else {
+                    // Passthrough without composition
+                    let trackOutput = AVAssetReaderTrackOutput(
+                        track: videoTrack,
+                        outputSettings: [
+                            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB
+                        ]
+                    )
+                    trackOutput.alwaysCopiesSampleData = false
+                    videoOutput = trackOutput
+                }
+                reader.add(videoOutput)
+                ctx.videoOutput = videoOutput
+
+                // Audio output
+                if let audioTrack = composition.tracks(withMediaType: .audio).first {
+                    let output = AVAssetReaderAudioMixOutput(audioTracks: [audioTrack], audioSettings: nil)
+                    reader.add(output)
+                    ctx.audioOutput = output
+                }
+
+                guard reader.startReading() else {
+                    let error = reader.error?.localizedDescription ?? "Failed to start reading"
+                    await MainActor.run { completion(.failure(BuildError.exportFailed(error))) }
+                    return
+                }
+
+                guard writer.startWriting() else {
+                    let error = writer.error?.localizedDescription ?? "Failed to start writing"
+                    await MainActor.run { completion(.failure(BuildError.exportFailed(error))) }
+                    return
+                }
+
+                writer.startSession(atSourceTime: CMTime(value: 0, timescale: 1000))
+
+                let totalDuration = CMTimeGetSeconds(composition.duration)
+                let videoQueue = DispatchQueue(label: "video.encode")
+                let audioQueue = DispatchQueue(label: "audio.encode")
+
+                // Use @unchecked Sendable wrapper for state
+                final class ExportState: @unchecked Sendable {
+                    var videoFinished = false
+                    var audioFinished = false
+                    var lastProgressUpdate: Double = 0
+                }
+                let state = ExportState()
+
+                // Write video
+                guard ctx.videoInput != nil, ctx.videoOutput != nil else {
+                    await MainActor.run { completion(.failure(BuildError.exportFailed("No video input/output"))) }
+                    return
+                }
+
+                ctx.videoInput?.requestMediaDataWhenReady(on: videoQueue) {
+                    guard let vi = ctx.videoInput, let vo = ctx.videoOutput else { return }
+                    while vi.isReadyForMoreMediaData {
+                        if let sampleBuffer = vo.copyNextSampleBuffer() {
+                            // Update progress
+                            let currentTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+                            let currentSeconds = CMTimeGetSeconds(currentTime)
+                            let currentProgress = currentSeconds / totalDuration
+
+                            if currentProgress - state.lastProgressUpdate > 0.01 {
+                                state.lastProgressUpdate = currentProgress
+                                DispatchQueue.main.async {
+                                    progress(currentProgress)
+                                }
+                            }
+
+                            if !vi.append(sampleBuffer) {
+                                break
+                            }
+                        } else {
+                            vi.markAsFinished()
+                            state.videoFinished = true
+                            break
+                        }
+                    }
+
+                    // Check if done
+                    if state.videoFinished && state.audioFinished {
+                        ctx.writer?.finishWriting {
+                            DispatchQueue.main.async {
+                                if ctx.writer?.status == .completed {
+                                    progress(1.0)
+                                    completion(.success(()))
+                                } else {
+                                    completion(.failure(BuildError.exportFailed(
+                                        ctx.writer?.error?.localizedDescription ?? "Unknown error"
+                                    )))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Write audio
+                if ctx.audioInput != nil && ctx.audioOutput != nil {
+                    ctx.audioInput?.requestMediaDataWhenReady(on: audioQueue) { [ctx] in
+                        guard let ai = ctx.audioInput, let ao = ctx.audioOutput else { return }
+                        while ai.isReadyForMoreMediaData {
+                            if let sampleBuffer = ao.copyNextSampleBuffer() {
+                                if !ai.append(sampleBuffer) {
+                                    break
+                                }
+                            } else {
+                                ai.markAsFinished()
+                                state.audioFinished = true
+                                break
+                            }
+                        }
+
+                        // Check if done
+                        if state.videoFinished && state.audioFinished {
+                            ctx.writer?.finishWriting {
+                                DispatchQueue.main.async {
+                                    if ctx.writer?.status == .completed {
+                                        progress(1.0)
+                                        completion(.success(()))
+                                    } else {
+                                        completion(.failure(BuildError.exportFailed(
+                                            ctx.writer?.error?.localizedDescription ?? "Unknown error"
+                                        )))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // No audio, mark as finished immediately
+                    state.audioFinished = true
+                }
+
+            } catch {
+                await MainActor.run {
+                    completion(.failure(error))
                 }
             }
         }

@@ -175,7 +175,8 @@ extension MainViewController {
 
         let resolution = ExportResolution(rawValue: Settings.shared.exportResolution) ?? .original
         let frameRate = ExportFrameRate(rawValue: Settings.shared.exportFrameRate) ?? .original
-        let format = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .mp4h264
+        let format = ExportFormat(rawValue: Settings.shared.exportFormat) ?? .passthrough
+        let videoBitRate = VideoBitRate(rawValue: Settings.shared.videoBitRate) ?? .original
 
         // Create progress sheet
         let progressSheet = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 320, height: 140),
@@ -222,6 +223,7 @@ extension MainViewController {
             resolution: resolution,
             frameRate: frameRate,
             format: format,
+            videoBitRate: videoBitRate,
             outputURL: outputURL,
             progress: { [weak progressBar, weak progressSheet] value in
                 DispatchQueue.main.async {

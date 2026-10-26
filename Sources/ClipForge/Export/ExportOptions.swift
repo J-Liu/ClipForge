@@ -175,3 +175,36 @@ enum AudioSampleRate: String, CaseIterable {
         }
     }
 }
+
+// MARK: - Video Bit Rate
+
+enum VideoBitRate: String, CaseIterable {
+    case original
+    case mbps5
+    case mbps10
+    case mbps15
+    case mbps20
+    case mbps30
+
+    var localizedName: String {
+        switch self {
+        case .original: return L("export.original")
+        case .mbps5: return "5 Mbps"
+        case .mbps10: return "10 Mbps"
+        case .mbps15: return "15 Mbps"
+        case .mbps20: return "20 Mbps"
+        case .mbps30: return "30 Mbps"
+        }
+    }
+
+    var value: Int? {
+        switch self {
+        case .original: return nil
+        case .mbps5: return 5_000_000
+        case .mbps10: return 10_000_000
+        case .mbps15: return 15_000_000
+        case .mbps20: return 20_000_000
+        case .mbps30: return 30_000_000
+        }
+    }
+}

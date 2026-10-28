@@ -16,8 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             userDriverDelegate: nil
         )
 
-        // Configure update check interval based on settings
-        configureUpdateCheckInterval()
+        // Disable Sparkle's built-in automatic check - we handle it ourselves
+        updaterController.updater.automaticallyChecksForUpdates = false
 
         MenuBuilder.build()
         installKeyMonitor()
@@ -30,26 +30,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             self?.windowController = nil
         }
+
+        // Check for updates on startup based on frequency setting
+        checkForUpdatesOnStartup()
     }
 
-    private func configureUpdateCheckInterval() {
-        let frequency = Settings.shared.updateCheckFrequency
-        let updater = updaterController.updater
-
-        if let interval = frequency.sparkleInterval {
-            // Enable automatic checks with specified interval
-            // Sparkle's automatic checks are silent - only shows UI when update is found
-            updater.automaticallyChecksForUpdates = true
-            UserDefaults.standard.set(interval, forKey: "SUScheduledCheckInterval")
-        } else {
-            // Never check automatically
-            updater.automaticallyChecksForUpdates = false
+    private func checkForUpdatesOnStartup() {
+        guard Settings.shared.shouldCheckForUpdates() else { return }
+        // Delay to let the app settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            // Use background check - only shows UI if update is found
+            self?.updaterController.updater.checkForUpdatesInBackground()
+            Settings.shared.recordUpdateCheck()
         }
     }
 
     /// Manual check - shows UI even when no updates
     func checkForUpdates() {
         updaterController.checkForUpdates(nil)
+        Settings.shared.recordUpdateCheck()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

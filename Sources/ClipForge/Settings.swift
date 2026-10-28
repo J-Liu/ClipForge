@@ -188,6 +188,41 @@ class Settings {
         set { defaults.set(newValue.rawValue, forKey: "updateCheckFrequency") }
     }
 
+    var lastUpdateCheck: String {
+        get { defaults.string(forKey: "lastUpdateCheck") ?? "" }
+        set { defaults.set(newValue, forKey: "lastUpdateCheck") }
+    }
+
+    func recordUpdateCheck() {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        lastUpdateCheck = formatter.string(from: Date())
+    }
+
+    func shouldCheckForUpdates() -> Bool {
+        let frequency = updateCheckFrequency
+        if frequency == .never { return false }
+        if frequency == .onLaunch { return true }
+
+        let lastCheck = lastUpdateCheck
+        guard !lastCheck.isEmpty else { return true }
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        guard let lastDate = formatter.date(from: lastCheck) else { return true }
+
+        let now = Date()
+        let interval = now.timeIntervalSince(lastDate)
+        let day: TimeInterval = 86400
+
+        switch frequency {
+        case .daily: return interval >= day
+        case .weekly: return interval >= day * 7
+        case .monthly: return interval >= day * 30
+        default: return true
+        }
+    }
+
     var recentFileCount: Int {
         get {
             let v = defaults.integer(forKey: "recentFileCount")

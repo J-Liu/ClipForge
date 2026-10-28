@@ -71,7 +71,5 @@
     <string>https://J-Liu.github.io/ClipForge/appcast.xml</string>
     <key>SUPublicEDKey</key>
     <string>g/Ikn/KRMIaAxdQ3lxqfQ+59ESWm/9qs6GMrP8He1mY=</string>
-    <key>SUEnableAutomaticChecks</key>
-    <true/>
 </dict>
 </plist>

@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize Sparkle updater
+        // SPUStandardUpdaterController handles UI for manual checks
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
@@ -74,6 +75,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// Manual check - shows UI even when no updates
     func checkForUpdates() {
         updaterController.checkForUpdates(nil)
     }

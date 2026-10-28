@@ -10,7 +10,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize Sparkle updater
-        // SPUStandardUpdaterController handles UI for manual checks
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
@@ -38,13 +37,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let updater = updaterController.updater
 
         if let interval = frequency.sparkleInterval {
-            // Set the check interval (in seconds)
+            // Enable automatic checks with specified interval
+            // Sparkle's automatic checks are silent - only shows UI when update is found
             updater.automaticallyChecksForUpdates = true
             UserDefaults.standard.set(interval, forKey: "SUScheduledCheckInterval")
         } else {
             // Never check automatically
             updater.automaticallyChecksForUpdates = false
         }
+    }
+
+    /// Manual check - shows UI even when no updates
+    func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -73,11 +78,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController?.showWindow(nil)
         windowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    /// Manual check - shows UI even when no updates
-    func checkForUpdates() {
-        updaterController.checkForUpdates(nil)
     }
 
     private func installKeyMonitor() {

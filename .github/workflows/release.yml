@@ -71,7 +71,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         VERSION="${GITHUB_REF_NAME#v}"
-        zip -r "ClipForge-${VERSION}.zip" ClipForge.app
+        ditto -c -k --keepParent ClipForge.app "ClipForge-${VERSION}.zip"
 
     - name: Sign update
       if: startsWith(github.ref, 'refs/tags/')

@@ -6,6 +6,18 @@
         <description>ClipForge releases</description>
         <language>en</language>
     <item>
+    <title>Version 0.1.10</title>
+    <pubDate>Thu, 29 Oct 2026 16:20:34 +0000</pubDate>
+    <sparkle:version>5</sparkle:version>
+    <sparkle:shortVersionString>0.1.10</sparkle:shortVersionString>
+    <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+    <enclosure
+        url="https://github.com/J-Liu/ClipForge/releases/download/v0.1.10/ClipForge-0.1.10.zip"
+        sparkle:edSignature="kytepGNGlcGbnBx0ZsJWRwHMgKQoqPa2uUAqjhtcy8mfL2yrBAXuCF2BL4BFR6xV4fpayUDRR1ej9fuR79aSAQ=="
+        length="3148056"
+        type="application/octet-stream"/>
+</item>
+    <item>
     <title>Version 0.1.9</title>
     <pubDate>Wed, 28 Oct 2026 02:42:28 +0000</pubDate>
     <sparkle:version>4</sparkle:version>

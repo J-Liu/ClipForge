@@ -1,75 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>
-    <string>ClipForge</string>
-    <key>CFBundleDisplayName</key>
-    <string>ClipForge</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.jialiu.clipforge</string>
-    <key>CFBundleVersion</key>
-    <string>5</string>
-    <key>CFBundleShortVersionString</key>
-    <string>0.1.10</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleExecutable</key>
-    <string>ClipForge</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
-    <key>NSScreenCaptureUsageDescription</key>
-    <string>ClipForge needs screen recording permission to capture your screen.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>ClipForge needs microphone access to record audio.</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>ClipForge needs access to your photo library to import media for editing.</string>
-    <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026 Jia Liu. All rights reserved.</string>
-    <key>CFBundleIconFile</key>
-    <string>ClipForge</string>
-    <key>CFBundleIconName</key>
-    <string>ClipForge</string>
-    <key>CFBundleDocumentTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeName</key>
-            <string>Video File</string>
-            <key>LSHandlerRank</key>
-            <string>Alternate</string>
-            <key>LSItemContentTypes</key>
-            <array>
-                <string>public.mpeg-4</string>
-                <string>com.apple.quicktime-movie</string>
-            </array>
-            <key>NSDocumentClass</key>
-            <string></string>
-        </dict>
-        <dict>
-            <key>CFBundleTypeName</key>
-            <string>Audio File</string>
-            <key>LSHandlerRank</key>
-            <string>Alternate</string>
-            <key>LSItemContentTypes</key>
-            <array>
-                <string>public.mp3</string>
-                <string>public.mpeg-4-audio</string>
-                <string>com.microsoft.waveform-audio</string>
-                <string>public.aifc-audio</string>
-                <string>public.audio</string>
-            </array>
-            <key>NSDocumentClass</key>
-            <string></string>
-        </dict>
-    </array>
-    <key>SUFeedURL</key>
-    <string>https://J-Liu.github.io/ClipForge/appcast.xml</string>
-    <key>SUPublicEDKey</key>
-    <string>g/Ikn/KRMIaAxdQ3lxqfQ+59ESWm/9qs6GMrP8He1mY=</string>
+	<key>CFBundleDisplayName</key>
+	<string>ClipForge</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Video File</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.mpeg-4</string>
+				<string>com.apple.quicktime-movie</string>
+			</array>
+			<key>NSDocumentClass</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Audio File</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.mp3</string>
+				<string>public.mpeg-4-audio</string>
+				<string>com.microsoft.waveform-audio</string>
+				<string>public.aifc-audio</string>
+				<string>public.audio</string>
+			</array>
+			<key>NSDocumentClass</key>
+			<string></string>
+		</dict>
+	</array>
+	<key>CFBundleExecutable</key>
+	<string>ClipForge</string>
+	<key>CFBundleIconFile</key>
+	<string>ClipForge</string>
+	<key>CFBundleIconName</key>
+	<string>ClipForge</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.jialiu.clipforge</string>
+	<key>CFBundleName</key>
+	<string>ClipForge</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.11</string>
+	<key>CFBundleVersion</key>
+	<string>6</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Jia Liu. All rights reserved.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ClipForge needs microphone access to record audio.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ClipForge needs access to your photo library to import media for editing.</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>ClipForge needs screen recording permission to capture your screen.</string>
+	<key>SUFeedURL</key>
+	<string>https://J-Liu.github.io/ClipForge/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>g/Ikn/KRMIaAxdQ3lxqfQ+59ESWm/9qs6GMrP8He1mY=</string>
 </dict>
 </plist>

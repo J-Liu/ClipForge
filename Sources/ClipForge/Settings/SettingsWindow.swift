@@ -405,6 +405,7 @@ final class SettingsWindow: NSWindow {
         pathField.isEditable = false
         pathField.isBezeled = true
         pathField.bezelStyle = .roundedBezel
+        pathField.identifier = NSUserInterfaceItemIdentifier("outputPath")
         pathField.widthAnchor.constraint(equalToConstant: 300).isActive = true
         pathField.lineBreakMode = .byTruncatingMiddle
 
@@ -518,6 +519,20 @@ final class SettingsWindow: NSWindow {
         formatPopup.target = self
         formatPopup.action = #selector(exportFormatChanged(_:))
         stack.addArrangedSubview(makeRow(label: L("settings.editing.format"), control: formatPopup))
+
+        // Row: Video Bit Rate
+        let bitRatePopup = NSPopUpButton()
+        let currentBitRate = Settings.shared.videoBitRate
+        for b in VideoBitRate.allCases {
+            bitRatePopup.addItem(withTitle: b.localizedName)
+            bitRatePopup.lastItem?.representedObject = b.rawValue
+            if currentBitRate == b.rawValue {
+                bitRatePopup.select(bitRatePopup.lastItem)
+            }
+        }
+        bitRatePopup.target = self
+        bitRatePopup.action = #selector(videoBitRateChanged(_:))
+        stack.addArrangedSubview(makeRow(label: L("export.bitRate"), control: bitRatePopup))
 
         return wrapInTopAlignedContainer(stack)
     }
@@ -724,23 +739,9 @@ final class SettingsWindow: NSWindow {
         panel.directoryURL = Settings.shared.recordingOutputDirectory
         if panel.runModal() == .OK, let url = panel.url {
             Settings.shared.recordingOutputDirectory = url
-            // Update the text field
-            for view in recordingTab.subviews {
-                if let stack = view as? NSStackView {
-                    updateOutputPathInStack(stack, path: url.path)
-                }
-            }
-        }
-    }
-
-    private func updateOutputPathInStack(_ stack: NSStackView, path: String) {
-        for arranged in stack.arrangedSubviews {
-            if let rowStack = arranged as? NSStackView {
-                for view in rowStack.arrangedSubviews {
-                    if let textField = view as? NSTextField, textField.isEditable == false {
-                        textField.stringValue = path
-                    }
-                }
+            // Update the text field with identifier "outputPath"
+            if let pathField = recordingTab.findView(withIdentifier: NSUserInterfaceItemIdentifier("outputPath")) as? NSTextField {
+                pathField.stringValue = url.path
             }
         }
     }
@@ -772,6 +773,11 @@ final class SettingsWindow: NSWindow {
     @objc private func exportFormatChanged(_ sender: NSPopUpButton) {
         guard let value = sender.selectedItem?.representedObject as? String else { return }
         UserDefaults.standard.set(value, forKey: "exportFormat")
+    }
+
+    @objc private func videoBitRateChanged(_ sender: NSPopUpButton) {
+        guard let value = sender.selectedItem?.representedObject as? String else { return }
+        Settings.shared.videoBitRate = value
     }
 
     // About actions

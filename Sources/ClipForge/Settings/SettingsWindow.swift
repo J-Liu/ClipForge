@@ -52,6 +52,7 @@ final class SettingsWindow: NSWindow {
     private func setupUI() {
         tabView = NSTabView(frame: contentView!.bounds.insetBy(dx: 10, dy: 10))
         tabView.autoresizingMask = [.width, .height]
+        tabView.delegate = self
 
         generalTab = createGeneralTab()
         let generalItem = NSTabViewItem(identifier: "general")
@@ -203,14 +204,6 @@ final class SettingsWindow: NSWindow {
         recentFileCountField.delegate = self
         recentFileCountField.identifier = NSUserInterfaceItemIdentifier("recentFileCount")
         recentFileCountField.widthAnchor.constraint(equalToConstant: 60).isActive = true
-        // Prevent auto-focus when switching tabs
-        recentFileCountField.refusesFirstResponder = true
-        // Set number formatter to only allow digits
-        let formatter = NumberFormatter()
-        formatter.allowsFloats = false
-        formatter.minimum = 0
-        formatter.maximum = 100
-        recentFileCountField.formatter = formatter
         stack.addArrangedSubview(makeRow(label: L("settings.general.recentFileCount"), control: recentFileCountField))
 
         // Section: Log
@@ -844,6 +837,31 @@ final class SettingsWindow: NSWindow {
 // MARK: - NSTextFieldDelegate
 
 extension SettingsWindow: NSTextFieldDelegate {
+    /// Only allow digits in the recent file count field
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        // Handle tab/return/escape to end editing
+        if commandSelector == #selector(NSResponder.insertTab(_:)) ||
+           commandSelector == #selector(NSResponder.insertNewline(_:)) ||
+           commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            control.window?.makeFirstResponder(nil)
+            return true
+        }
+        return false
+    }
+
+    /// Filter non-digit characters in real-time
+    func controlTextDidChange(_ obj: Notification) {
+        guard let textField = obj.object as? NSTextField,
+              textField.identifier?.rawValue == "recentFileCount" else { return }
+
+        // Only keep digits
+        let filtered = textField.stringValue.filter { $0.isNumber }
+        if filtered != textField.stringValue {
+            textField.stringValue = filtered
+        }
+    }
+
+    /// Clamp value when editing ends
     func controlTextDidEndEditing(_ obj: Notification) {
         guard let textField = obj.object as? NSTextField,
               textField.identifier?.rawValue == "recentFileCount" else { return }
@@ -865,5 +883,16 @@ extension NSView {
             }
         }
         return nil
+    }
+}
+
+// MARK: - NSTabViewDelegate
+
+extension SettingsWindow: NSTabViewDelegate {
+    /// End editing when switching tabs
+    func tabView(_ tabView: NSTabView, shouldSelect tabViewItem: NSTabViewItem?) -> Bool {
+        // End editing on current first responder
+        makeFirstResponder(nil)
+        return true
     }
 }

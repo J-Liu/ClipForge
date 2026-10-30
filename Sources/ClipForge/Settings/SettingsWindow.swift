@@ -203,6 +203,14 @@ final class SettingsWindow: NSWindow {
         recentFileCountField.delegate = self
         recentFileCountField.identifier = NSUserInterfaceItemIdentifier("recentFileCount")
         recentFileCountField.widthAnchor.constraint(equalToConstant: 60).isActive = true
+        // Prevent auto-focus when switching tabs
+        recentFileCountField.refusesFirstResponder = true
+        // Set number formatter to only allow digits
+        let formatter = NumberFormatter()
+        formatter.allowsFloats = false
+        formatter.minimum = 0
+        formatter.maximum = 100
+        recentFileCountField.formatter = formatter
         stack.addArrangedSubview(makeRow(label: L("settings.general.recentFileCount"), control: recentFileCountField))
 
         // Section: Log
@@ -840,7 +848,7 @@ extension SettingsWindow: NSTextFieldDelegate {
         guard let textField = obj.object as? NSTextField,
               textField.identifier?.rawValue == "recentFileCount" else { return }
         let value = Int(textField.stringValue) ?? 20
-        let clampedValue = max(1, min(100, value))
+        let clampedValue = max(0, min(100, value))
         textField.stringValue = String(clampedValue)
         Settings.shared.recentFileCount = clampedValue
     }

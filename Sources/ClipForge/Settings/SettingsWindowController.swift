@@ -21,6 +21,10 @@ class SettingsWindowController: NSWindowController {
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        // If currently showing About tab, switch to General
+        if settingsWindow?.currentTabIdentifier() == "about" {
+            settingsWindow?.selectTab(withIdentifier: "general")
+        }
     }
 
     /// Show the About tab when opening from menu.

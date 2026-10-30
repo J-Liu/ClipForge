@@ -787,6 +787,11 @@ final class SettingsWindow: NSWindow {
         tabView.selectTabViewItem(withIdentifier: identifier)
     }
 
+    /// Returns the identifier of the currently selected tab.
+    func currentTabIdentifier() -> String? {
+        return tabView.selectedTabViewItem?.identifier as? String
+    }
+
     // MARK: - UI Recreation
 
     private func recreateUI() {

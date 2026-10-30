@@ -21,21 +21,21 @@ final class SettingsWindow: NSWindow {
     init() {
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
         let width: CGFloat = 560
-        let height: CGFloat = 520
+        let height: CGFloat = 620
         let x = screenFrame.midX - width / 2
         let y = screenFrame.midY - height / 2
         let frame = NSRect(x: x, y: y, width: width, height: height)
 
         super.init(
             contentRect: frame,
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )
 
         self.title = L("menu.app.settings").replacingOccurrences(of: "…", with: "")
         self.isReleasedWhenClosed = false
-        self.minSize = NSSize(width: 560, height: 450)
+        self.minSize = NSSize(width: 560, height: 500)
 
         setupUI()
         setupKeyHandlers()

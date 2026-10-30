@@ -83,9 +83,19 @@ final class SettingsWindow: NSWindow {
 
     // MARK: - Layout Helpers
 
+    /// A container view that accepts first responder to handle focus loss from text fields.
+    private class FocusableContainerView: NSView {
+        override var acceptsFirstResponder: Bool { true }
+
+        override func mouseDown(with event: NSEvent) {
+            // When clicked, end editing in any text field
+            window?.makeFirstResponder(nil)
+        }
+    }
+
     /// Wrap content in a top-aligned container so the stack starts at the top.
     private func wrapInTopAlignedContainer(_ stack: NSStackView) -> NSView {
-        let container = NSView()
+        let container = FocusableContainerView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stack)
         NSLayoutConstraint.activate([

@@ -25,6 +25,10 @@ class SettingsWindowController: NSWindowController {
         if settingsWindow?.currentTabIdentifier() == "about" {
             settingsWindow?.selectTab(withIdentifier: "general")
         }
+        // Remove focus from any text field
+        DispatchQueue.main.async {
+            self.window?.makeFirstResponder(nil)
+        }
     }
 
     /// Show the About tab when opening from menu.

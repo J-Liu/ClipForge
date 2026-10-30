@@ -69,16 +69,7 @@ class AppActions {
     @objc func decreaseVolume() { mainViewController?.adjustVolume(by: -0.1) }
 
     @objc func showAbout() {
-        let credits = NSMutableAttributedString(
-            string: "https://github.com/J-Liu/ClipForge",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11),
-                .link: "https://github.com/J-Liu/ClipForge"
-            ]
-        )
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: credits
-        ])
+        SettingsWindowController.shared.showAboutTab()
     }
 
     @objc func openRecentFile(_ sender: NSMenuItem) {

@@ -7,34 +7,25 @@ import AppKit
 class SettingsWindowController: NSWindowController {
 
     static let shared = SettingsWindowController()
-    private let tabViewController = SettingsTabViewController()
+    private var settingsWindow: SettingsWindow?
 
     convenience init() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 420),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = L("menu.app.settings").replacingOccurrences(of: "…", with: "")
-        window.center()
-        window.isReleasedWhenClosed = false
-
-        self.init(window: window)
+        self.init(window: nil)
     }
 
     func present() {
-        contentViewController = tabViewController
+        if settingsWindow == nil {
+            settingsWindow = SettingsWindow()
+        }
+        self.window = settingsWindow
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
 
-        NotificationCenter.default.addObserver(
-            forName: .languageChanged,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.window?.title = L("menu.app.settings").replacingOccurrences(of: "…", with: "")
-        }
+    /// Show the About tab when opening from menu.
+    func showAboutTab() {
+        present()
+        settingsWindow?.selectTab(withIdentifier: "about")
     }
 }

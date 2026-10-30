@@ -10,6 +10,11 @@ let enStrings: [String: String] = [
     "settings.tab.general": "General",
     "settings.tab.recording": "Recording",
     "settings.tab.editing": "Editing",
+    "settings.tab.about": "About",
+
+    // Settings - About
+    "settings.about.version": "Version %@ (Build %@)",
+    "settings.about.copyright": "Copyright © 2026 Jia Liu. All rights reserved.",
 
     // Settings - General
     "settings.general.language": "Language",
@@ -27,6 +32,7 @@ let enStrings: [String: String] = [
     "settings.general.updateFrequency.never": "Never",
     "settings.general.checkForUpdates": "Check Now",
     "settings.general.recentFileCount": "Number of recent items",
+    "settings.general.log": "Log",
     "settings.general.enableLog": "Enable logging",
     "settings.general.logPath": "Log file",
     "settings.general.logPath.notAvailable": "Not available",
@@ -51,6 +57,7 @@ let enStrings: [String: String] = [
     "settings.recording.showCursor": "Show cursor",
     "settings.recording.window": "Window",
     "settings.recording.dontHideMainWindow": "Don't hide main window during recording",
+    "settings.recording.output": "Output",
     "settings.recording.outputFolder": "Output Folder",
     "settings.recording.choose": "Choose…",
     "settings.recording.reveal": "Reveal",
@@ -233,6 +240,11 @@ let zhHansStrings: [String: String] = [
     "settings.tab.general": "通用",
     "settings.tab.recording": "录制",
     "settings.tab.editing": "编辑",
+    "settings.tab.about": "关于",
+
+    // Settings - About
+    "settings.about.version": "版本 %@ (构建 %@)",
+    "settings.about.copyright": "版权所有 © 2026 Jia Liu。保留所有权利。",
 
     // Settings - General
     "settings.general.language": "语言",
@@ -250,6 +262,7 @@ let zhHansStrings: [String: String] = [
     "settings.general.updateFrequency.never": "从不",
     "settings.general.checkForUpdates": "立即检查",
     "settings.general.recentFileCount": "最近项目数量",
+    "settings.general.log": "日志",
     "settings.general.enableLog": "启用日志",
     "settings.general.logPath": "日志文件",
     "settings.general.logPath.notAvailable": "不可用",
@@ -274,6 +287,7 @@ let zhHansStrings: [String: String] = [
     "settings.recording.showCursor": "显示光标",
     "settings.recording.window": "窗口",
     "settings.recording.dontHideMainWindow": "录制时不隐藏主窗口",
+    "settings.recording.output": "输出",
     "settings.recording.outputFolder": "输出文件夹",
     "settings.recording.choose": "选择…",
     "settings.recording.reveal": "在 Finder 中显示",
@@ -456,6 +470,11 @@ let zhHantStrings: [String: String] = [
     "settings.tab.general": "一般",
     "settings.tab.recording": "錄製",
     "settings.tab.editing": "編輯",
+    "settings.tab.about": "關於",
+
+    // Settings - About
+    "settings.about.version": "版本 %@ (建置 %@)",
+    "settings.about.copyright": "版權所有 © 2026 Jia Liu。保留所有權利。",
 
     // Settings - General
     "settings.general.language": "語言",
@@ -473,6 +492,7 @@ let zhHantStrings: [String: String] = [
     "settings.general.updateFrequency.never": "從不",
     "settings.general.checkForUpdates": "立即檢查",
     "settings.general.recentFileCount": "最近項目數量",
+    "settings.general.log": "日誌",
     "settings.general.enableLog": "啟用日誌",
     "settings.general.logPath": "日誌檔案",
     "settings.general.logPath.notAvailable": "不可用",
@@ -497,6 +517,7 @@ let zhHantStrings: [String: String] = [
     "settings.recording.showCursor": "顯示游標",
     "settings.recording.window": "視窗",
     "settings.recording.dontHideMainWindow": "錄製時不隱藏主視窗",
+    "settings.recording.output": "輸出",
     "settings.recording.outputFolder": "輸出檔案夾",
     "settings.recording.choose": "選擇…",
     "settings.recording.reveal": "在 Finder 中顯示",

@@ -18,6 +18,7 @@ let enStrings: [String: String] = [
 
     // Settings - General
     "settings.general.language": "Language",
+    "settings.language.system": "System",
     "settings.general.quitAfterLastWindow": "Quit after closing the last window",
     "settings.general.dontHideWindow": "Don't hide the main window during recording",
     "settings.general.countdown": "Countdown before recording",
@@ -248,6 +249,7 @@ let zhHansStrings: [String: String] = [
 
     // Settings - General
     "settings.general.language": "语言",
+    "settings.language.system": "跟随系统",
     "settings.general.quitAfterLastWindow": "关闭最后一个窗口后退出",
     "settings.general.dontHideWindow": "录制时不隐藏主窗口",
     "settings.general.countdown": "录制前倒计时",
@@ -478,6 +480,7 @@ let zhHantStrings: [String: String] = [
 
     // Settings - General
     "settings.general.language": "語言",
+    "settings.language.system": "跟隨系統",
     "settings.general.quitAfterLastWindow": "關閉最後一個視窗後結束",
     "settings.general.dontHideWindow": "錄製時不隱藏主視窗",
     "settings.general.countdown": "錄製前倒數計時",

@@ -129,7 +129,13 @@ final class SettingsWindow: NSWindow {
         // Row: Language
         let languagePopup = NSPopUpButton()
         for lang in Language.allCases {
-            languagePopup.addItem(withTitle: lang.nativeName)
+            let title: String
+            if lang == .system {
+                title = L("settings.language.system")
+            } else {
+                title = lang.nativeName
+            }
+            languagePopup.addItem(withTitle: title)
             languagePopup.lastItem?.representedObject = lang
             if lang == LocalizationManager.shared.currentLanguage {
                 languagePopup.select(languagePopup.lastItem)
@@ -202,7 +208,16 @@ final class SettingsWindow: NSWindow {
         // Section: Log
         let logLabel = NSTextField(labelWithString: L("settings.general.log"))
         logLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        stack.addArrangedSubview(logLabel)
+        let logLabelContainer = NSView()
+        logLabel.translatesAutoresizingMaskIntoConstraints = false
+        logLabelContainer.addSubview(logLabel)
+        NSLayoutConstraint.activate([
+            logLabel.topAnchor.constraint(equalTo: logLabelContainer.topAnchor, constant: 8),
+            logLabel.leadingAnchor.constraint(equalTo: logLabelContainer.leadingAnchor),
+            logLabel.trailingAnchor.constraint(equalTo: logLabelContainer.trailingAnchor),
+            logLabel.bottomAnchor.constraint(equalTo: logLabelContainer.bottomAnchor)
+        ])
+        stack.addArrangedSubview(logLabelContainer)
 
         // Row: Enable Log
         let logEnabledCheckbox = NSButton(checkboxWithTitle: L("settings.general.enableLog"), target: self, action: #selector(logEnabledChanged(_:)))
@@ -269,7 +284,16 @@ final class SettingsWindow: NSWindow {
         // Section: Audio
         let audioLabel = NSTextField(labelWithString: L("settings.recording.audio"))
         audioLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        stack.addArrangedSubview(audioLabel)
+        let audioLabelContainer = NSView()
+        audioLabel.translatesAutoresizingMaskIntoConstraints = false
+        audioLabelContainer.addSubview(audioLabel)
+        NSLayoutConstraint.activate([
+            audioLabel.topAnchor.constraint(equalTo: audioLabelContainer.topAnchor, constant: 8),
+            audioLabel.leadingAnchor.constraint(equalTo: audioLabelContainer.leadingAnchor),
+            audioLabel.trailingAnchor.constraint(equalTo: audioLabelContainer.trailingAnchor),
+            audioLabel.bottomAnchor.constraint(equalTo: audioLabelContainer.bottomAnchor)
+        ])
+        stack.addArrangedSubview(audioLabelContainer)
 
         // Row: Capture System Audio
         let systemAudioCheckbox = NSButton(checkboxWithTitle: L("settings.recording.captureSystemAudio"), target: self, action: #selector(systemAudioChanged(_:)))
@@ -301,7 +325,16 @@ final class SettingsWindow: NSWindow {
         // Section: Video
         let videoLabel = NSTextField(labelWithString: L("settings.recording.video"))
         videoLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        stack.addArrangedSubview(videoLabel)
+        let videoLabelContainer = NSView()
+        videoLabel.translatesAutoresizingMaskIntoConstraints = false
+        videoLabelContainer.addSubview(videoLabel)
+        NSLayoutConstraint.activate([
+            videoLabel.topAnchor.constraint(equalTo: videoLabelContainer.topAnchor, constant: 8),
+            videoLabel.leadingAnchor.constraint(equalTo: videoLabelContainer.leadingAnchor),
+            videoLabel.trailingAnchor.constraint(equalTo: videoLabelContainer.trailingAnchor),
+            videoLabel.bottomAnchor.constraint(equalTo: videoLabelContainer.bottomAnchor)
+        ])
+        stack.addArrangedSubview(videoLabelContainer)
 
         // Row: Frame Rate
         let frameRatePopup = NSPopUpButton()
@@ -355,7 +388,16 @@ final class SettingsWindow: NSWindow {
         // Section: Output
         let outputLabel = NSTextField(labelWithString: L("settings.recording.output"))
         outputLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        stack.addArrangedSubview(outputLabel)
+        let outputLabelContainer = NSView()
+        outputLabel.translatesAutoresizingMaskIntoConstraints = false
+        outputLabelContainer.addSubview(outputLabel)
+        NSLayoutConstraint.activate([
+            outputLabel.topAnchor.constraint(equalTo: outputLabelContainer.topAnchor, constant: 8),
+            outputLabel.leadingAnchor.constraint(equalTo: outputLabelContainer.leadingAnchor),
+            outputLabel.trailingAnchor.constraint(equalTo: outputLabelContainer.trailingAnchor),
+            outputLabel.bottomAnchor.constraint(equalTo: outputLabelContainer.bottomAnchor)
+        ])
+        stack.addArrangedSubview(outputLabelContainer)
 
         // Row: Output Directory
         let pathField = NSTextField()
@@ -389,7 +431,16 @@ final class SettingsWindow: NSWindow {
         // Section: Playback
         let playbackLabel = NSTextField(labelWithString: L("settings.editing.playback"))
         playbackLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        stack.addArrangedSubview(playbackLabel)
+        let playbackLabelContainer = NSView()
+        playbackLabel.translatesAutoresizingMaskIntoConstraints = false
+        playbackLabelContainer.addSubview(playbackLabel)
+        NSLayoutConstraint.activate([
+            playbackLabel.topAnchor.constraint(equalTo: playbackLabelContainer.topAnchor, constant: 8),
+            playbackLabel.leadingAnchor.constraint(equalTo: playbackLabelContainer.leadingAnchor),
+            playbackLabel.trailingAnchor.constraint(equalTo: playbackLabelContainer.trailingAnchor),
+            playbackLabel.bottomAnchor.constraint(equalTo: playbackLabelContainer.bottomAnchor)
+        ])
+        stack.addArrangedSubview(playbackLabelContainer)
 
         // Row: Auto Play
         let autoPlayCheckbox = NSButton(checkboxWithTitle: L("settings.editing.autoPlay"), target: self, action: #selector(autoPlayChanged(_:)))
@@ -415,7 +466,16 @@ final class SettingsWindow: NSWindow {
         // Section: Export
         let exportLabel = NSTextField(labelWithString: L("settings.editing.export"))
         exportLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        stack.addArrangedSubview(exportLabel)
+        let exportLabelContainer = NSView()
+        exportLabel.translatesAutoresizingMaskIntoConstraints = false
+        exportLabelContainer.addSubview(exportLabel)
+        NSLayoutConstraint.activate([
+            exportLabel.topAnchor.constraint(equalTo: exportLabelContainer.topAnchor, constant: 8),
+            exportLabel.leadingAnchor.constraint(equalTo: exportLabelContainer.leadingAnchor),
+            exportLabel.trailingAnchor.constraint(equalTo: exportLabelContainer.trailingAnchor),
+            exportLabel.bottomAnchor.constraint(equalTo: exportLabelContainer.bottomAnchor)
+        ])
+        stack.addArrangedSubview(exportLabelContainer)
 
         // Row: Resolution
         let resolutionPopup = NSPopUpButton()
@@ -469,8 +529,14 @@ final class SettingsWindow: NSWindow {
 
         // App Icon
         let appIcon = NSImageView()
-        if let icnsPath = Bundle.main.path(forResource: "AppIcon", ofType: "icns"),
+        // Try multiple locations for the app icon
+        if let image = NSImage(named: NSImage.applicationIconName) {
+            appIcon.image = image
+        } else if let icnsPath = Bundle.main.path(forResource: "ClipForge", ofType: "icns"),
            let image = NSImage(contentsOfFile: icnsPath) {
+            appIcon.image = image
+        } else if let compiledPath = Bundle.main.path(forResource: "Compiled/ClipForge", ofType: "icns"),
+           let image = NSImage(contentsOfFile: compiledPath) {
             appIcon.image = image
         } else {
             appIcon.image = NSImage(systemSymbolName: "film", accessibilityDescription: nil)

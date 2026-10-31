@@ -22,6 +22,7 @@ extension MainViewController {
                 self.recordButton.isEnabled = true
                 return
             }
+            PowerManagement.shared.preventSleep()
             self.statusBar.setState(.recording)
             if self.dontHideCheckbox.state == .off {
                 self.view.window?.orderOut(nil)
@@ -49,6 +50,7 @@ extension MainViewController {
         recorder.stopRecording { [weak self] url in
             DispatchQueue.main.async {
                 guard let self else { return }
+                PowerManagement.shared.allowSleep()
                 self.statusBar.setState(.idle)
                 self.recordButton.isEnabled = true
                 self.view.window?.makeKeyAndOrderFront(nil)
@@ -104,6 +106,7 @@ extension MainViewController {
                 self.recordButton.isEnabled = true
                 return
             }
+            PowerManagement.shared.preventSleep()
             self.statusBar.setState(.recording)
             if self.dontHideCheckbox.state == .off {
                 self.view.window?.orderOut(nil)
@@ -135,6 +138,7 @@ extension MainViewController {
                 self.recordButton.isEnabled = true
                 return
             }
+            PowerManagement.shared.preventSleep()
             self.statusBar.setState(.recording)
             if self.dontHideCheckbox.state == .off {
                 self.view.window?.orderOut(nil)

@@ -136,6 +136,7 @@ class CompositionBuilder {
         session.audioTimePitchAlgorithm = .spectral
 
         MainViewController.exportSession = session
+        PowerManagement.shared.preventSleep()
 
         var timer: Timer?
         DispatchQueue.main.async {
@@ -153,6 +154,7 @@ class CompositionBuilder {
                 timer?.invalidate()
                 timer = nil
                 MainViewController.exportSession = nil
+                PowerManagement.shared.allowSleep()
             }
             DispatchQueue.main.async {
                 switch session.status {
@@ -459,6 +461,7 @@ class CompositionBuilder {
 
         // Store session for cancellation
         MainViewController.exportSession = session
+        PowerManagement.shared.preventSleep()
 
         // Poll progress on a timer on the main thread.
         var timer: Timer?
@@ -477,6 +480,7 @@ class CompositionBuilder {
                 timer?.invalidate()
                 timer = nil
                 MainViewController.exportSession = nil
+                PowerManagement.shared.allowSleep()
             }
             DispatchQueue.main.async {
                 switch session.status {
@@ -517,13 +521,17 @@ class CompositionBuilder {
         }
 
         let ctx = ExportContext()
+        PowerManagement.shared.preventSleep()
 
         // Use asset reader/writer for precise control
         Task.detached {
             do {
                 // Get video track
                 guard let videoTrack = composition.tracks(withMediaType: .video).first else {
-                    await MainActor.run { completion(.failure(BuildError.trackLoadFailed)) }
+                    await MainActor.run {
+                        PowerManagement.shared.allowSleep()
+                        completion(.failure(BuildError.trackLoadFailed))
+                    }
                     return
                 }
 
@@ -556,7 +564,10 @@ class CompositionBuilder {
                 ctx.videoInput = videoInput
 
                 guard writer.canAdd(videoInput) else {
-                    await MainActor.run { completion(.failure(BuildError.exportFailed("Cannot add video input to writer"))) }
+                    await MainActor.run {
+                        PowerManagement.shared.allowSleep()
+                        completion(.failure(BuildError.exportFailed("Cannot add video input to writer")))
+                    }
                     return
                 }
                 writer.add(videoInput)
@@ -610,13 +621,19 @@ class CompositionBuilder {
 
                 guard reader.startReading() else {
                     let error = reader.error?.localizedDescription ?? "Failed to start reading"
-                    await MainActor.run { completion(.failure(BuildError.exportFailed(error))) }
+                    await MainActor.run {
+                        PowerManagement.shared.allowSleep()
+                        completion(.failure(BuildError.exportFailed(error)))
+                    }
                     return
                 }
 
                 guard writer.startWriting() else {
                     let error = writer.error?.localizedDescription ?? "Failed to start writing"
-                    await MainActor.run { completion(.failure(BuildError.exportFailed(error))) }
+                    await MainActor.run {
+                        PowerManagement.shared.allowSleep()
+                        completion(.failure(BuildError.exportFailed(error)))
+                    }
                     return
                 }
 
@@ -636,7 +653,10 @@ class CompositionBuilder {
 
                 // Write video
                 guard ctx.videoInput != nil, ctx.videoOutput != nil else {
-                    await MainActor.run { completion(.failure(BuildError.exportFailed("No video input/output"))) }
+                    await MainActor.run {
+                        PowerManagement.shared.allowSleep()
+                        completion(.failure(BuildError.exportFailed("No video input/output")))
+                    }
                     return
                 }
 
@@ -670,6 +690,7 @@ class CompositionBuilder {
                     if state.videoFinished && state.audioFinished {
                         ctx.writer?.finishWriting {
                             DispatchQueue.main.async {
+                                PowerManagement.shared.allowSleep()
                                 if ctx.writer?.status == .completed {
                                     progress(1.0)
                                     completion(.success(()))
@@ -703,6 +724,7 @@ class CompositionBuilder {
                         if state.videoFinished && state.audioFinished {
                             ctx.writer?.finishWriting {
                                 DispatchQueue.main.async {
+                                    PowerManagement.shared.allowSleep()
                                     if ctx.writer?.status == .completed {
                                         progress(1.0)
                                         completion(.success(()))
@@ -722,6 +744,7 @@ class CompositionBuilder {
 
             } catch {
                 await MainActor.run {
+                    PowerManagement.shared.allowSleep()
                     completion(.failure(error))
                 }
             }

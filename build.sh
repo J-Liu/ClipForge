@@ -58,6 +58,19 @@ if [ -d "$SPARKLE_FRAMEWORK" ]; then
     cp -a "$SPARKLE_FRAMEWORK" "${APP_BUNDLE}/Contents/Frameworks/"
 fi
 
+# Copy FFmpegKit frameworks
+FFMPEGKIT_DIR="${ROOT_DIR}/Packages/FFmpegKit"
+if [ -d "${FFMPEGKIT_DIR}" ]; then
+    echo "==> Copying FFmpegKit frameworks..."
+    mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
+    for framework in ffmpegkit libavformat libavcodec libavutil libavfilter libswscale libswresample; do
+        FRAMEWORK_PATH="${FFMPEGKIT_DIR}/${framework}.xcframework/macos-arm64_x86_64/${framework}.framework"
+        if [ -d "$FRAMEWORK_PATH" ]; then
+            cp -a "$FRAMEWORK_PATH" "${APP_BUNDLE}/Contents/Frameworks/"
+        fi
+    done
+fi
+
 # Add rpath for frameworks
 install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
 

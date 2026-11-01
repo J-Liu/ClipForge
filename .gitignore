@@ -75,4 +75,4 @@ ffmpeg-kit-next-*/
 Packages/FFmpegKit/*.xcframework/
 
 # App bundle
-ClipForge.app/
+*.app/

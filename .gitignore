@@ -62,3 +62,17 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 build/ClipForge.icns
+
+# FFmpeg build cache
+.cache/
+
+# FFmpeg kit source (only track flake files)
+ffmpeg-kit-next-*/
+!ffmpeg-kit-next-*/flake.nix
+!ffmpeg-kit-next-*/flake.lock
+
+# FFmpegKit package xcframeworks (binaries are large)
+Packages/FFmpegKit/*.xcframework/
+
+# App bundle
+ClipForge.app/

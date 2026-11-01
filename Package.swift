@@ -11,13 +11,15 @@ let package = Package(
         .macOS(.v13)
     ],
     dependencies: [
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0"),
+        .package(path: "Packages/FFmpegKit")
     ],
     targets: [
         .executableTarget(
             name: "ClipForge",
             dependencies: [
-                .product(name: "Sparkle", package: "Sparkle")
+                .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "FFmpegKit", package: "FFmpegKit")
             ],
             path: "Sources/ClipForge"
         )

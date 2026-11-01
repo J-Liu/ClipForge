@@ -35,7 +35,19 @@ class PlayerView: NSView {
         // Disable implicit animations to avoid layer jitter during window resize.
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        playerLayer.frame = bounds
+
+        let absRotation = abs(Int(currentRotation) % 360)
+        if absRotation == 90 || absRotation == 270 {
+            // Swap the dimensions for 90°/270°
+            let newWidth = bounds.height
+            let newHeight = bounds.width
+            let offsetX = (bounds.width - newWidth) / 2
+            let offsetY = (bounds.height - newHeight) / 2
+            playerLayer.frame = CGRect(x: offsetX, y: offsetY, width: newWidth, height: newHeight)
+        } else {
+            playerLayer.frame = bounds
+        }
+
         CATransaction.commit()
 
         // Notify that layout changed so crop overlay can update

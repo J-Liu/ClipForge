@@ -10,6 +10,8 @@ extension MainViewController {
         let displayRect = playerView.videoDisplayRect(for: videoNaturalSize)
         Log("updateOverlayContentRect: naturalSize=\(videoNaturalSize), rotation=\(playerView.rotationDegrees), displayRect=\(displayRect), bounds=\(playerView.bounds)")
         cropOverlay.contentRect = displayRect
+        // Reset selection to match the new content rect (needed for window resize)
+        cropOverlay.resetSelection()
     }
 
     func updateCropRect(from selectionRect: NSRect) {

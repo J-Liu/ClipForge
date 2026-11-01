@@ -331,6 +331,7 @@ class CompositionBuilder {
     }
 
     /// Build an AVMutableVideoComposition that crops every frame to `cropRect`.
+    /// Preserves the video track's preferredTransform (which includes rotation).
     private static func makeVideoComposition(
         composition: AVMutableComposition,
         cropRect: NSRect?,
@@ -352,33 +353,42 @@ class CompositionBuilder {
 
         let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
 
-        let fullSize = videoTrack.naturalSize
-        // The source region we actually use (crop or full).
-        let sourceSize = hasCrop ? cropRect!.size : fullSize
+        // Start with the track's preferredTransform (includes rotation)
+        let preferredTransform = videoTrack.preferredTransform
+        var transform = preferredTransform
 
-        // Build the transform: first translate the crop region to (0,0),
-        // then scale to fit the target size, then center.
-        var transform = CGAffineTransform.identity
+        // Get the natural size after applying preferredTransform
+        let naturalSize = videoTrack.naturalSize
+        let videoAngle = atan2(preferredTransform.b, preferredTransform.a)
+        let isRotated = abs(videoAngle - .pi / 2) < 0.01 || abs(videoAngle + .pi / 2) < 0.01 || abs(videoAngle - .pi) < 0.01 || abs(videoAngle + .pi) < 0.01
+
+        // When rotated 90 or 270 degrees, swap width and height
+        let effectiveSize: CGSize
+        if isRotated {
+            effectiveSize = CGSize(width: naturalSize.height, height: naturalSize.width)
+        } else {
+            effectiveSize = naturalSize
+        }
+
+        let sourceSize = hasCrop ? cropRect!.size : effectiveSize
 
         if hasCrop, let cropRect = cropRect {
             // Crop rect is in top-left origin coordinates; CG transform is bottom-left.
-            let translateY = -(fullSize.height - cropRect.origin.y - cropRect.height)
-            transform = CGAffineTransform(translationX: -cropRect.origin.x, y: translateY)
+            let translateY = -(effectiveSize.height - cropRect.origin.y - cropRect.height)
+            let cropTransform = CGAffineTransform(translationX: -cropRect.origin.x, y: translateY)
+            transform = transform.concatenating(cropTransform)
         }
 
         let videoComposition = AVMutableVideoComposition()
 
         if let targetSize = targetSize {
-            // Compute the scale to fit source into target, keeping aspect ratio.
             let srcAspect = sourceSize.width / sourceSize.height
             let dstAspect = targetSize.width / targetSize.height
 
             let scale: CGFloat
             if srcAspect > dstAspect {
-                // Source is wider — fit by width.
                 scale = targetSize.width / sourceSize.width
             } else {
-                // Source is taller — fit by height.
                 scale = targetSize.height / sourceSize.height
             }
 
@@ -387,7 +397,6 @@ class CompositionBuilder {
             let offsetX = (targetSize.width - scaledWidth) / 2
             let offsetY = (targetSize.height - scaledHeight) / 2
 
-            // Compose: translate crop → scale → translate to center.
             let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
             let centerTransform = CGAffineTransform(translationX: offsetX, y: offsetY)
             transform = transform.concatenating(scaleTransform).concatenating(centerTransform)
@@ -399,7 +408,6 @@ class CompositionBuilder {
 
         instruction.setTransform(transform, at: .zero)
 
-        // Set frame duration - use target FPS or default to 30
         let fps = targetFPS ?? 30
         videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
 

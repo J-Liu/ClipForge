@@ -44,6 +44,10 @@ let package = Package(
             name: "libswresample",
             path: "libswresample.xcframework"
         ),
+        .binaryTarget(
+            name: "libavdevice",
+            path: "libavdevice.xcframework"
+        ),
         .target(
             name: "FFmpegKit",
             dependencies: [
@@ -53,7 +57,8 @@ let package = Package(
                 "libavutil",
                 "libavfilter",
                 "libswscale",
-                "libswresample"
+                "libswresample",
+                "libavdevice"
             ],
             path: "Sources/FFmpegKit"
         )

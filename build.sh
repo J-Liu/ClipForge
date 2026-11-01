@@ -63,7 +63,7 @@ FFMPEGKIT_DIR="${ROOT_DIR}/Packages/FFmpegKit"
 if [ -d "${FFMPEGKIT_DIR}" ]; then
     echo "==> Copying FFmpegKit frameworks..."
     mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
-    for framework in ffmpegkit libavformat libavcodec libavutil libavfilter libswscale libswresample; do
+    for framework in ffmpegkit libavformat libavcodec libavutil libavfilter libswscale libswresample libavdevice; do
         FRAMEWORK_PATH="${FFMPEGKIT_DIR}/${framework}.xcframework/macos-arm64_x86_64/${framework}.framework"
         if [ -d "$FRAMEWORK_PATH" ]; then
             cp -a "$FRAMEWORK_PATH" "${APP_BUNDLE}/Contents/Frameworks/"

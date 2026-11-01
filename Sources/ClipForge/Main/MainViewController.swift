@@ -420,6 +420,10 @@ class MainViewController: NSViewController {
             }
         }
 
+        playerView.onLayoutChanged = { [weak self] in
+            self?.updateOverlayContentRect()
+        }
+
         NSLayoutConstraint.activate([
             playerView.topAnchor.constraint(equalTo: view.topAnchor),
             playerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -628,6 +632,7 @@ class MainViewController: NSViewController {
     }
 
     private func updateOverlayForRotation() {
+        Log("updateOverlayForRotation: new rotation=\(playerView.rotationDegrees)")
         // Update the content rect to match the rotated video display
         // videoDisplayRect now uses effective (swapped) dimensions for 90°/270° rotations
         updateOverlayContentRect()

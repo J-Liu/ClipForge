@@ -37,7 +37,13 @@ class PlayerView: NSView {
         CATransaction.setDisableActions(true)
         playerLayer.frame = bounds
         CATransaction.commit()
+
+        // Notify that layout changed so crop overlay can update
+        onLayoutChanged?()
     }
+
+    /// Called when the view's layout changes (window resize, etc.)
+    var onLayoutChanged: (() -> Void)?
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
@@ -69,7 +75,29 @@ class PlayerView: NSView {
     private func applyRotation() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+
+        // First reset the transform so we can set frame correctly
+        playerLayer.transform = CATransform3DIdentity
+
+        // For 90° and 270° rotations, we need to adjust the layer's frame
+        // to properly display the rotated content
+        let absRotation = abs(Int(currentRotation) % 360)
+
+        if absRotation == 90 || absRotation == 270 {
+            // Swap the dimensions for 90°/270°
+            let newWidth = bounds.height
+            let newHeight = bounds.width
+            let offsetX = (bounds.width - newWidth) / 2
+            let offsetY = (bounds.height - newHeight) / 2
+            playerLayer.frame = CGRect(x: offsetX, y: offsetY, width: newWidth, height: newHeight)
+        } else {
+            playerLayer.frame = bounds
+        }
+
+        // Now apply the rotation transform
         playerLayer.transform = CATransform3DMakeRotation(currentRotation * .pi / 180, 0, 0, 1)
+
+        Log("applyRotation: rotation=\(currentRotation), playerLayer.frame=\(playerLayer.frame), bounds=\(bounds)")
         CATransaction.commit()
     }
 
@@ -111,6 +139,8 @@ class PlayerView: NSView {
             rect = NSRect(x: (bounds.width - width) / 2, y: 0,
                           width: width, height: bounds.height)
         }
+
+        Log("videoDisplayRect: videoSize=\(videoSize), rotation=\(currentRotation), effectiveSize=\(effectiveSize), bounds=\(bounds), result=\(rect)")
         return rect
     }
 

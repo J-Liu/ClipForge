@@ -8,6 +8,7 @@ extension MainViewController {
     func updateOverlayContentRect() {
         guard videoNaturalSize.width > 0 else { return }
         let displayRect = playerView.videoDisplayRect(for: videoNaturalSize)
+        Log("updateOverlayContentRect: naturalSize=\(videoNaturalSize), rotation=\(playerView.rotationDegrees), displayRect=\(displayRect), bounds=\(playerView.bounds)")
         cropOverlay.contentRect = displayRect
     }
 
@@ -19,6 +20,8 @@ extension MainViewController {
         // Get effective (rotated) video size that matches the display
         let effectiveSize = playerView.effectiveVideoSize(for: videoNaturalSize)
 
+        Log("updateCropRect: selection=\(selectionRect), displayRect=\(displayRect), naturalSize=\(videoNaturalSize), effectiveSize=\(effectiveSize), rotation=\(playerView.rotationDegrees)")
+
         // Scale from screen coordinates to effective video coordinates
         let scaleX = effectiveSize.width / displayRect.width
         let scaleY = effectiveSize.height / displayRect.height
@@ -27,6 +30,8 @@ extension MainViewController {
         let effectiveY = (selectionRect.minY - displayRect.minY) * scaleY
         let effectiveW = selectionRect.width * scaleX
         let effectiveH = selectionRect.height * scaleY
+
+        Log("effective coords: x=\(effectiveX), y=\(effectiveY), w=\(effectiveW), h=\(effectiveH)")
 
         // Map effective coordinates back to original video coordinates
         // based on the rotation
@@ -58,6 +63,8 @@ extension MainViewController {
             cropW = effectiveW
             cropH = effectiveH
         }
+
+        Log("crop coords (rotation=\(absRotation)): x=\(cropX), y=\(cropY), w=\(cropW), h=\(cropH)")
 
         // Ensure even dimensions for video encoding
         let evenW = floor(cropW / 2) * 2

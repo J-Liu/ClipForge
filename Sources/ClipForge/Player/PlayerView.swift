@@ -78,12 +78,26 @@ class PlayerView: NSView {
         return currentRotation
     }
 
+    /// The effective video size after rotation (dimensions may swap).
+    func effectiveVideoSize(for naturalSize: CGSize) -> CGSize {
+        let absRotation = abs(Int(currentRotation) % 360)
+        if absRotation == 90 || absRotation == 270 {
+            // Dimensions swap for 90° and 270° rotations
+            return CGSize(width: naturalSize.height, height: naturalSize.width)
+        }
+        return naturalSize
+    }
+
     /// The rect where the video is actually rendered (accounting for aspect fit).
+    /// For rotated videos, this returns the rect for the effective (rotated) dimensions.
     func videoDisplayRect(for videoSize: CGSize) -> NSRect {
         guard videoSize.width > 0, videoSize.height > 0 else { return bounds }
 
+        // Use effective size for rotated videos
+        let effectiveSize = effectiveVideoSize(for: videoSize)
+
         let viewAspect = bounds.width / bounds.height
-        let videoAspect = videoSize.width / videoSize.height
+        let videoAspect = effectiveSize.width / effectiveSize.height
 
         var rect = bounds
         if videoAspect > viewAspect {

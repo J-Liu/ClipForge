@@ -619,10 +619,20 @@ class MainViewController: NSViewController {
 
     @objc func rotateVideoLeft() {
         playerView.rotateCounterClockwise()
+        updateOverlayForRotation()
     }
 
     @objc func rotateVideoRight() {
         playerView.rotateClockwise()
+        updateOverlayForRotation()
+    }
+
+    private func updateOverlayForRotation() {
+        // Update the content rect to match the rotated video display
+        // videoDisplayRect now uses effective (swapped) dimensions for 90°/270° rotations
+        updateOverlayContentRect()
+        // Reset the selection to match the new dimensions
+        cropOverlay.resetSelection()
     }
 
     func stepFrames(_ count: Int) {

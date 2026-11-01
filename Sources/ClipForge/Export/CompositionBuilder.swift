@@ -179,6 +179,7 @@ class CompositionBuilder {
     ///   - clips: all loaded video clips (with their URLs and timeline positions)
     ///   - segments: all segments on the global timeline, with isKept marking which to include
     ///   - cropRect: optional crop rectangle in video pixel coordinates
+    ///   - rotation: rotation angle in degrees (0, 90, -90, 180, -180, 270, -270)
     ///   - outputURL: destination file URL
     ///   - progress: called on main thread with 0.0...1.0
     ///   - completion: called on main thread with success or error
@@ -186,6 +187,7 @@ class CompositionBuilder {
         clips: [VideoClip],
         segments: [Segment],
         cropRect: NSRect?,
+        rotation: CGFloat,
         resolution: ExportResolution,
         frameRate: ExportFrameRate,
         format: ExportFormat,
@@ -278,8 +280,17 @@ class CompositionBuilder {
                 }
 
                 // Apply the first clip's preferred transform.
+                var baseTransform = CGAffineTransform.identity
                 if let firstURL = clips.first?.url, let transform = transformCache[firstURL] {
+                    baseTransform = transform
                     compositionVideoTrack?.preferredTransform = transform
+                }
+
+                // Apply additional rotation if specified.
+                if rotation != 0 {
+                    let rotationRadians = rotation * .pi / 180
+                    let rotationTransform = CGAffineTransform(rotationAngle: rotationRadians)
+                    compositionVideoTrack?.preferredTransform = baseTransform.concatenating(rotationTransform)
                 }
 
                 // Build the video composition for cropping, if needed.
@@ -330,11 +341,18 @@ class CompositionBuilder {
             return nil
         }
 
+        let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
+        let hasTargetSize = targetSize != nil
+        let hasTargetFPS = targetFPS != nil
+
+        // If no modifications needed, return nil to allow passthrough export.
+        if !hasCrop && !hasTargetSize && !hasTargetFPS {
+            return nil
+        }
+
         let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
 
         let fullSize = videoTrack.naturalSize
-        let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
-
         // The source region we actually use (crop or full).
         let sourceSize = hasCrop ? cropRect!.size : fullSize
 
@@ -381,8 +399,10 @@ class CompositionBuilder {
 
         instruction.setTransform(transform, at: .zero)
 
-        let fps = targetFPS ?? 30
-        videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
+        // Only set frame duration if we have a target FPS
+        if let fps = targetFPS {
+            videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
+        }
 
         let instructionGroup = AVMutableVideoCompositionInstruction()
         instructionGroup.timeRange = CMTimeRange(start: .zero, duration: composition.duration)

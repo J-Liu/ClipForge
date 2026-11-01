@@ -220,6 +220,7 @@ extension MainViewController {
             clips: playerController.clips,
             segments: segments,
             cropRect: cropRect,
+            rotation: playerView.rotationDegrees,
             resolution: resolution,
             frameRate: frameRate,
             format: format,

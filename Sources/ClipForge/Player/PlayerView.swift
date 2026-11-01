@@ -73,6 +73,11 @@ class PlayerView: NSView {
         CATransaction.commit()
     }
 
+    /// Current rotation angle in degrees (0, 90, 180, 270, -90, -180, -270).
+    var rotationDegrees: CGFloat {
+        return currentRotation
+    }
+
     /// The rect where the video is actually rendered (accounting for aspect fit).
     func videoDisplayRect(for videoSize: CGSize) -> NSRect {
         guard videoSize.width > 0, videoSize.height > 0 else { return bounds }

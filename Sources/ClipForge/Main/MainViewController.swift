@@ -632,7 +632,6 @@ class MainViewController: NSViewController {
     }
 
     private func updateOverlayForRotation() {
-        Log("updateOverlayForRotation: new rotation=\(playerView.rotationDegrees)")
         // Update the content rect to match the rotated video display
         // videoDisplayRect now uses effective (swapped) dimensions for 90°/270° rotations
         updateOverlayContentRect()

@@ -36,6 +36,9 @@ class PlayerView: NSView {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
 
+        // Reset transform before setting frame
+        playerLayer.transform = CATransform3DIdentity
+
         let absRotation = abs(Int(currentRotation) % 360)
         if absRotation == 90 || absRotation == 270 {
             // Swap the dimensions for 90°/270°
@@ -47,6 +50,9 @@ class PlayerView: NSView {
         } else {
             playerLayer.frame = bounds
         }
+
+        // Re-apply rotation transform
+        playerLayer.transform = CATransform3DMakeRotation(currentRotation * .pi / 180, 0, 0, 1)
 
         CATransaction.commit()
 
@@ -109,7 +115,6 @@ class PlayerView: NSView {
         // Now apply the rotation transform
         playerLayer.transform = CATransform3DMakeRotation(currentRotation * .pi / 180, 0, 0, 1)
 
-        Log("applyRotation: rotation=\(currentRotation), playerLayer.frame=\(playerLayer.frame), bounds=\(bounds)")
         CATransaction.commit()
     }
 
@@ -151,8 +156,6 @@ class PlayerView: NSView {
             rect = NSRect(x: (bounds.width - width) / 2, y: 0,
                           width: width, height: bounds.height)
         }
-
-        Log("videoDisplayRect: videoSize=\(videoSize), rotation=\(currentRotation), effectiveSize=\(effectiveSize), bounds=\(bounds), result=\(rect)")
         return rect
     }
 

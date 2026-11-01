@@ -341,11 +341,18 @@ class CompositionBuilder {
             return nil
         }
 
+        let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
+        let hasTargetSize = targetSize != nil
+        let hasTargetFPS = targetFPS != nil
+
+        // If no modifications needed, return nil to allow passthrough export.
+        if !hasCrop && !hasTargetSize && !hasTargetFPS {
+            return nil
+        }
+
         let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
 
         let fullSize = videoTrack.naturalSize
-        let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
-
         // The source region we actually use (crop or full).
         let sourceSize = hasCrop ? cropRect!.size : fullSize
 

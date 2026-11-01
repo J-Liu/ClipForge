@@ -35,6 +35,12 @@ extension MainViewController {
         if !preserveEdits {
             cutPoints = []
         }
+
+        // Reset UI to beginning
+        slider.value = 0
+        currentTimeLabel.stringValue = "00:00"
+        timeInputView.setTime(.zero)
+
         rebuildSegments()
 
         guard let firstURL = urls.first else { return }

@@ -126,6 +126,8 @@ let enStrings: [String: String] = [
     "menu.edit.copy": "Copy",
     "menu.edit.paste": "Paste",
     "menu.edit.selectAll": "Select All",
+    "menu.edit.rotateLeft": "Rotate Left",
+    "menu.edit.rotateRight": "Rotate Right",
 
     // Menu - Playback
     "menu.playback": "Playback",
@@ -168,6 +170,8 @@ let enStrings: [String: String] = [
     "main.tooltip.zoomOut": "Zoom out",
     "main.tooltip.resetZoom": "Reset zoom",
     "main.tooltip.segmentList": "Show segment list",
+    "main.tooltip.rotateLeft": "Rotate left",
+    "main.tooltip.rotateRight": "Rotate right",
     "main.segmentList.title": "Segments",
 
     // Errors
@@ -357,6 +361,8 @@ let zhHansStrings: [String: String] = [
     "menu.edit.copy": "复制",
     "menu.edit.paste": "粘贴",
     "menu.edit.selectAll": "全选",
+    "menu.edit.rotateLeft": "逆时针旋转",
+    "menu.edit.rotateRight": "顺时针旋转",
 
     // Menu - Playback
     "menu.playback": "播放",
@@ -399,6 +405,8 @@ let zhHansStrings: [String: String] = [
     "main.tooltip.zoomOut": "缩小",
     "main.tooltip.resetZoom": "重置缩放",
     "main.tooltip.segmentList": "显示片段列表",
+    "main.tooltip.rotateLeft": "逆时针旋转",
+    "main.tooltip.rotateRight": "顺时针旋转",
     "main.segmentList.title": "片段",
 
     // Errors
@@ -588,6 +596,8 @@ let zhHantStrings: [String: String] = [
     "menu.edit.copy": "拷貝",
     "menu.edit.paste": "貼上",
     "menu.edit.selectAll": "全選",
+    "menu.edit.rotateLeft": "逆時針旋轉",
+    "menu.edit.rotateRight": "順時針旋轉",
 
     // Menu - Playback
     "menu.playback": "播放",
@@ -630,6 +640,8 @@ let zhHantStrings: [String: String] = [
     "main.tooltip.zoomOut": "縮小",
     "main.tooltip.resetZoom": "重置縮放",
     "main.tooltip.segmentList": "顯示片段列表",
+    "main.tooltip.rotateLeft": "逆時針旋轉",
+    "main.tooltip.rotateRight": "順時針旋轉",
     "main.segmentList.title": "片段",
 
     // Errors

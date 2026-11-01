@@ -68,6 +68,9 @@ class AppActions {
     @objc func increaseVolume() { mainViewController?.adjustVolume(by: 0.1) }
     @objc func decreaseVolume() { mainViewController?.adjustVolume(by: -0.1) }
 
+    @objc func rotateLeft() { mainViewController?.rotateVideoLeft() }
+    @objc func rotateRight() { mainViewController?.rotateVideoRight() }
+
     @objc func showAbout() {
         SettingsWindowController.shared.showAboutTab()
     }

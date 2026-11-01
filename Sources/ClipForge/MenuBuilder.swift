@@ -195,6 +195,20 @@ class MenuBuilder {
         menu.addItem(withTitle: L("menu.edit.paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         menu.addItem(withTitle: L("menu.edit.selectAll"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
 
+        menu.addItem(.separator())
+
+        let rotateLeft = NSMenuItem(title: L("menu.edit.rotateLeft"),
+                                    action: #selector(AppActions.rotateLeft),
+                                    keyEquivalent: "[")
+        rotateLeft.target = AppActions.shared
+        menu.addItem(rotateLeft)
+
+        let rotateRight = NSMenuItem(title: L("menu.edit.rotateRight"),
+                                     action: #selector(AppActions.rotateRight),
+                                     keyEquivalent: "]")
+        rotateRight.target = AppActions.shared
+        menu.addItem(rotateRight)
+
         item.submenu = menu
         return item
     }

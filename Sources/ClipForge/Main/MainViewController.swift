@@ -97,6 +97,22 @@ class MainViewController: NSViewController {
         return b
     }()
 
+    let rotateLeftButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "rotate.left",
+                                        accessibilityDescription: L("main.tooltip.rotateLeft"))!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
+    let rotateRightButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "rotate.right",
+                                        accessibilityDescription: L("main.tooltip.rotateRight"))!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
     var segmentListWindowController: SegmentListWindowController?
 
     override func loadView() {
@@ -233,6 +249,8 @@ class MainViewController: NSViewController {
         volumeSlider.translatesAutoresizingMaskIntoConstraints = false
         muteButton.translatesAutoresizingMaskIntoConstraints = false
         segmentListButton.translatesAutoresizingMaskIntoConstraints = false
+        rotateLeftButton.translatesAutoresizingMaskIntoConstraints = false
+        rotateRightButton.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -290,6 +308,14 @@ class MainViewController: NSViewController {
         segmentListButton.action = #selector(showSegmentList)
         segmentListButton.toolTip = L("main.tooltip.segmentList")
 
+        rotateLeftButton.target = self
+        rotateLeftButton.action = #selector(rotateVideoLeft)
+        rotateLeftButton.toolTip = L("main.tooltip.rotateLeft")
+
+        rotateRightButton.target = self
+        rotateRightButton.action = #selector(rotateVideoRight)
+        rotateRightButton.toolTip = L("main.tooltip.rotateRight")
+
         segmentBar.onCutPointAdded = { [weak self] time in
             self?.addCutPointAt(time)
         }
@@ -331,6 +357,8 @@ class MainViewController: NSViewController {
         view.addSubview(volumeSlider)
         view.addSubview(muteButton)
         view.addSubview(segmentListButton)
+        view.addSubview(rotateLeftButton)
+        view.addSubview(rotateRightButton)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -437,7 +465,13 @@ class MainViewController: NSViewController {
             segmentListButton.leadingAnchor.constraint(equalTo: exportButton.trailingAnchor, constant: 8),
             segmentListButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
 
-            separator.leadingAnchor.constraint(greaterThanOrEqualTo: segmentListButton.trailingAnchor, constant: 12),
+            rotateLeftButton.leadingAnchor.constraint(equalTo: segmentListButton.trailingAnchor, constant: 8),
+            rotateLeftButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            rotateRightButton.leadingAnchor.constraint(equalTo: rotateLeftButton.trailingAnchor, constant: 8),
+            rotateRightButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            separator.leadingAnchor.constraint(greaterThanOrEqualTo: rotateRightButton.trailingAnchor, constant: 12),
             separator.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -12),
             separator.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
             separator.heightAnchor.constraint(equalToConstant: 20),
@@ -581,6 +615,14 @@ class MainViewController: NSViewController {
         Settings.shared.recordingMode = mode
         updateRecordButtonIcon()
         rebuildRecordModeMenu()
+    }
+
+    @objc func rotateVideoLeft() {
+        playerView.rotateCounterClockwise()
+    }
+
+    @objc func rotateVideoRight() {
+        playerView.rotateClockwise()
     }
 
     func stepFrames(_ count: Int) {

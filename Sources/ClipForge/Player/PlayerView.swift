@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 
 class PlayerView: NSView {
     private let playerLayer = AVPlayerLayer()
+    private var currentRotation: CGFloat = 0
 
     /// Called when files are dropped. The Bool is true if the user held ⌘ (replace).
     var onFilesDropped: (([URL], Bool) -> Void)?
@@ -45,6 +46,31 @@ class PlayerView: NSView {
 
     func attach(player: AVPlayer) {
         playerLayer.player = player
+    }
+
+    /// Rotate video 90 degrees clockwise.
+    func rotateClockwise() {
+        currentRotation -= 90
+        applyRotation()
+    }
+
+    /// Rotate video 90 degrees counter-clockwise.
+    func rotateCounterClockwise() {
+        currentRotation += 90
+        applyRotation()
+    }
+
+    /// Reset rotation to 0.
+    func resetRotation() {
+        currentRotation = 0
+        applyRotation()
+    }
+
+    private func applyRotation() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        playerLayer.transform = CATransform3DMakeRotation(currentRotation * .pi / 180, 0, 0, 1)
+        CATransaction.commit()
     }
 
     /// The rect where the video is actually rendered (accounting for aspect fit).

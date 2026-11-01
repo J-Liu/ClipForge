@@ -399,10 +399,9 @@ class CompositionBuilder {
 
         instruction.setTransform(transform, at: .zero)
 
-        // Only set frame duration if we have a target FPS
-        if let fps = targetFPS {
-            videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
-        }
+        // Set frame duration - use target FPS or default to 30
+        let fps = targetFPS ?? 30
+        videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(fps))
 
         let instructionGroup = AVMutableVideoCompositionInstruction()
         instructionGroup.timeRange = CMTimeRange(start: .zero, duration: composition.duration)

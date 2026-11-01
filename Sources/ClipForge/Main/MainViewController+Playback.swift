@@ -29,78 +29,118 @@ extension MainViewController {
     }
 
     func loadVideos(urls: [URL], preserveEdits: Bool = false) {
-        playerController.load(urls: urls)
-        playerView.attach(player: playerController.player)
-
-        if !preserveEdits {
-            cutPoints = []
-        }
-
-        // Reset UI to beginning
-        slider.value = 0
-        currentTimeLabel.stringValue = "00:00"
-        timeInputView.setTime(.zero)
-
-        rebuildSegments()
-
-        guard let firstURL = urls.first else { return }
-
-        // Set default audio export format based on source file extension
-        let ext = firstURL.pathExtension.lowercased()
-        switch ext {
-        case "mp3":
-            Settings.shared.audioExportFormat = "mp3"
-        case "m4a", "aac":
-            Settings.shared.audioExportFormat = "aac"
-        case "wav":
-            Settings.shared.audioExportFormat = "wav"
-        default:
-            break  // Keep current setting
-        }
-
-        // Load waveform for audio files
         Task {
-            do {
-                let data = try await WaveformLoader.load(from: firstURL)
-                await MainActor.run {
-                    Log("Waveform loaded: \(data.sampleCount) samples")
-                    self.waveformView.setWaveformData(data)
-                    self.updateWaveformVisibility()
-                    Log("WaveformView hidden: \(self.waveformView.isHidden), isAudioOnly: \(self.playerController.isAudioOnly)")
+            var processedURLs: [URL] = []
+            var remuxFailedCount = 0
+
+            for url in urls {
+                // Check if file needs remuxing
+                if await Remuxer.needsRemux(url: url) {
+                    // Try to remux to MP4
+                    do {
+                        Log("Remuxing \(url.path) to MP4...")
+                        let result = try await Remuxer.remuxToMP4(inputURL: url) { progress in
+                            // Progress callback - could show in UI
+                            Log("Remux progress: \(Int(progress * 100))%")
+                        }
+                        processedURLs.append(result.outputURL)
+                        Log("Remux complete: \(result.outputURL.path)")
+                    } catch {
+                        Log("Remux failed for \(url.path): \(error)")
+                        remuxFailedCount += 1
+                        // Still try to load original file - AVFoundation might work anyway
+                        processedURLs.append(url)
+                    }
+                } else {
+                    processedURLs.append(url)
                 }
-            } catch {
-                await MainActor.run {
-                    Log("Waveform load failed: \(error)")
-                    self.waveformView.setWaveformData(nil)
-                    self.updateWaveformVisibility()
+            }
+
+            await MainActor.run {
+                if !processedURLs.isEmpty {
+                    self.playerController.load(urls: processedURLs)
+                    self.playerView.attach(player: self.playerController.player)
+
+                    if !preserveEdits {
+                        self.cutPoints = []
+                    }
+
+                    // Reset UI to beginning
+                    self.slider.value = 0
+                    self.currentTimeLabel.stringValue = "00:00"
+                    self.timeInputView.setTime(.zero)
+
+                    self.rebuildSegments()
+
+                    guard let firstURL = processedURLs.first else { return }
+
+                    // Set default audio export format based on source file extension
+                    let ext = firstURL.pathExtension.lowercased()
+                    switch ext {
+                    case "mp3":
+                        Settings.shared.audioExportFormat = "mp3"
+                    case "m4a", "aac":
+                        Settings.shared.audioExportFormat = "aac"
+                    case "wav":
+                        Settings.shared.audioExportFormat = "wav"
+                    default:
+                        break  // Keep current setting
+                    }
+
+                    // Load waveform for audio files
+                    Task {
+                        do {
+                            let data = try await WaveformLoader.load(from: firstURL)
+                            await MainActor.run {
+                                Log("Waveform loaded: \(data.sampleCount) samples")
+                                self.waveformView.setWaveformData(data)
+                                self.updateWaveformVisibility()
+                                Log("WaveformView hidden: \(self.waveformView.isHidden), isAudioOnly: \(self.playerController.isAudioOnly)")
+                            }
+                        } catch {
+                            await MainActor.run {
+                                Log("Waveform load failed: \(error)")
+                                self.waveformView.setWaveformData(nil)
+                                self.updateWaveformVisibility()
+                            }
+                        }
+                    }
+
+                    Task {
+                        let asset = AVURLAsset(url: firstURL)
+                        if let track = try? await asset.loadTracks(withMediaType: .video).first {
+                            let size = try? await track.load(.naturalSize)
+                            await MainActor.run {
+                                self.videoNaturalSize = size ?? .zero
+                                self.updateOverlayContentRect()
+                                self.updateWaveformVisibility()
+                            }
+                        } else {
+                            // No video track - this is audio-only
+                            await MainActor.run {
+                                self.videoNaturalSize = .zero
+                                self.updateWaveformVisibility()
+                            }
+                        }
+                    }
+
+                    if Settings.shared.autoPlayOnOpen {
+                        self.playerController.play()
+                    } else {
+                        self.playerController.seek(to: .zero)
+                    }
+                    self.updatePlayButtonIcon()
+                }
+
+                if remuxFailedCount > 0 {
+                    self.showAlert(
+                        title: L("alert.remuxFailed.title"),
+                        message: L("alert.remuxFailed.message", remuxFailedCount),
+                        recovery: nil
+                    )
                 }
             }
         }
-
-        Task {
-            let asset = AVURLAsset(url: firstURL)
-            if let track = try? await asset.loadTracks(withMediaType: .video).first {
-                let size = try? await track.load(.naturalSize)
-                await MainActor.run {
-                    self.videoNaturalSize = size ?? .zero
-                    self.updateOverlayContentRect()
-                    self.updateWaveformVisibility()
-                }
-            } else {
-                // No video track - this is audio-only
-                await MainActor.run {
-                    self.videoNaturalSize = .zero
-                    self.updateWaveformVisibility()
-                }
-            }
-        }
-
-        if Settings.shared.autoPlayOnOpen {
-            playerController.play()
-        } else {
-            playerController.seek(to: .zero)
-        }
-        updatePlayButtonIcon()
     }
 
     func updateWaveformVisibility() {

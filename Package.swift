@@ -19,7 +19,7 @@ let package = Package(
             name: "ClipForge",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle"),
-                .product(name: "FFmpegKit", package: "FFmpegKit")
+                .product(name: "ffmpegkit", package: "FFmpegKit")
             ],
             path: "Sources/ClipForge"
         )

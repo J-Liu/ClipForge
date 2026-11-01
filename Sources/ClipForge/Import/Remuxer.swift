@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright 2026 Jia Liu
 
+import AVFoundation
 import Foundation
 
 /// Remuxes video files from unsupported containers (MKV, etc.) to MP4.

@@ -8,6 +8,7 @@ class PlayerController {
     let player = AVPlayer()
     private(set) var urls: [URL] = []
     private(set) var durations: [CMTime] = []
+    private(set) var metadata: [VideoMetadata?] = []
     private(set) var currentIndex: Int = 0
 
     /// Global timeline duration (sum of all videos).
@@ -34,7 +35,10 @@ class PlayerController {
         var cursor = CMTime.zero
         for (i, url) in urls.enumerated() {
             let d = i < durations.count ? durations[i] : .zero
-            result.append(VideoClip(url: url, duration: d, startOnTimeline: cursor))
+            let m = i < metadata.count ? metadata[i] : nil
+            var clip = VideoClip(url: url, duration: d, startOnTimeline: cursor)
+            clip.metadata = m
+            result.append(clip)
             cursor = CMTimeAdd(cursor, d)
         }
         return result
@@ -53,6 +57,7 @@ class PlayerController {
         removeObservers()
         self.urls = []
         self.durations = []
+        self.metadata = []
         self.currentIndex = 0
         self.totalDuration = .zero
         self.isAudioOnly = false
@@ -65,6 +70,7 @@ class PlayerController {
         Task {
             var loadedURLs: [URL] = []
             var loadedDurations: [CMTime] = []
+            var loadedMetadata: [VideoMetadata?] = []
             var total = CMTime.zero
             var failedCount = 0
             var hasVideo = false
@@ -77,6 +83,10 @@ class PlayerController {
                     loadedURLs.append(url)
                     loadedDurations.append(d)
                     total = CMTimeAdd(total, d)
+
+                    // Load metadata from the asset
+                    let meta = await VideoMetadata.from(asset: asset)
+                    loadedMetadata.append(meta)
 
                     // Check if this asset has video tracks
                     if !hasVideo {
@@ -93,6 +103,7 @@ class PlayerController {
 
             let finalURLs = loadedURLs
             let finalDurations = loadedDurations
+            let finalMetadata = loadedMetadata
             let finalTotal = total
             let finalFailed = failedCount
             let finalHasVideo = hasVideo
@@ -100,6 +111,7 @@ class PlayerController {
             await MainActor.run {
                 self.urls = finalURLs
                 self.durations = finalDurations
+                self.metadata = finalMetadata
                 self.totalDuration = finalTotal
                 self.isAudioOnly = !finalHasVideo
                 if !finalURLs.isEmpty {

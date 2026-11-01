@@ -285,22 +285,6 @@ class CompositionBuilder {
                     baseTransform = transform
                 }
 
-                // Apply additional rotation if specified.
-                if rotation != 0 {
-                    let rotationRadians = rotation * .pi / 180
-                    let rotationTransform = CGAffineTransform(rotationAngle: rotationRadians)
-                    baseTransform = baseTransform.concatenating(rotationTransform)
-                }
-                compositionVideoTrack?.preferredTransform = baseTransform
-
-                // Build the video composition for cropping, if needed.
-                let videoComposition = makeVideoComposition(
-                    composition: composition,
-                    cropRect: cropRect,
-                    targetSize: resolution.size,
-                    targetFPS: frameRate.value
-                )
-
                 // Get source video bitrate for "Original" option
                 var sourceBitRate: Int = 10_000_000 // Default fallback
                 if let firstClip = clips.first {
@@ -312,12 +296,35 @@ class CompositionBuilder {
                     }
                 }
 
+                // Apply rotation to preferredTransform
+                if rotation != 0 {
+                    let rotationRadians = rotation * .pi / 180
+                    let rotationTransform = CGAffineTransform(rotationAngle: rotationRadians)
+                    baseTransform = baseTransform.concatenating(rotationTransform)
+                }
+
+                compositionVideoTrack?.preferredTransform = baseTransform
+
+                // Build the video composition for cropping, if needed.
+                // Pass the rotation so it can be applied in videoComposition for writer export
+                let videoComposition = makeVideoComposition(
+                    composition: composition,
+                    cropRect: cropRect,
+                    targetSize: resolution.size,
+                    targetFPS: frameRate.value,
+                    rotation: rotation
+                )
+
+                // Get metadata from first clip
+                let firstClipMetadata = clips.first?.metadata
+
                 runExport(
                     composition: composition,
                     videoComposition: videoComposition,
                     format: format,
                     videoBitRate: videoBitRate,
                     sourceBitRate: sourceBitRate,
+                    metadata: firstClipMetadata,
                     outputURL: outputURL,
                     progress: progress,
                     completion: completion
@@ -331,22 +338,42 @@ class CompositionBuilder {
     }
 
     /// Build an AVMutableVideoComposition that crops every frame to `cropRect`.
+    /// Also applies rotation if specified.
     private static func makeVideoComposition(
         composition: AVMutableComposition,
         cropRect: NSRect?,
         targetSize: CGSize?,
-        targetFPS: Int?
+        targetFPS: Int?,
+        rotation: CGFloat = 0
     ) -> AVMutableVideoComposition? {
         guard let videoTrack = composition.tracks(withMediaType: .video).first else {
             return nil
         }
 
         let hasCrop = (cropRect != nil && cropRect!.width > 0 && cropRect!.height > 0)
+
+        // Check if crop is effectively the full frame (no actual cropping)
+        let isFullFrameCrop: Bool
+        if hasCrop, let cropRect = cropRect {
+            let trackSize = videoTrack.naturalSize
+            isFullFrameCrop = (cropRect.origin.x == 0 && cropRect.origin.y == 0 &&
+                               abs(cropRect.width - trackSize.width) < 1 &&
+                               abs(cropRect.height - trackSize.height) < 1)
+        } else {
+            isFullFrameCrop = false
+        }
+
+        // If crop is the full frame, treat it as no crop
+        let effectiveHasCrop = hasCrop && !isFullFrameCrop
+
         let hasTargetSize = targetSize != nil
         let hasTargetFPS = targetFPS != nil
+        let hasRotation = rotation != 0
 
-        // If no modifications needed, return nil to allow passthrough export.
-        if !hasCrop && !hasTargetSize && !hasTargetFPS {
+        // Rotation is handled via preferredTransform for passthrough export.
+        // Only create videoComposition if there's actual crop, target size, or target FPS.
+        // If ONLY rotation, return nil to allow passthrough (rotation via preferredTransform).
+        if !effectiveHasCrop && !hasTargetSize && !hasTargetFPS {
             return nil
         }
 
@@ -354,36 +381,46 @@ class CompositionBuilder {
 
         let fullSize = videoTrack.naturalSize
         // The source region we actually use (crop or full).
-        let sourceSize = hasCrop ? cropRect!.size : fullSize
+        let sourceSize = effectiveHasCrop ? cropRect!.size : fullSize
 
         // Build the transform: first translate the crop region to (0,0),
-        // then scale to fit the target size, then center.
+        // then scale to fit the target size, then center, then apply rotation.
         var transform = CGAffineTransform.identity
 
-        if hasCrop, let cropRect = cropRect {
+        if effectiveHasCrop, let cropRect = cropRect {
             // Crop rect is in top-left origin coordinates; CG transform is bottom-left.
             let translateY = -(fullSize.height - cropRect.origin.y - cropRect.height)
             transform = CGAffineTransform(translationX: -cropRect.origin.x, y: translateY)
+        }
+
+        // Determine render size - account for rotation which may swap dimensions
+        var effectiveSourceSize = sourceSize
+        if hasRotation {
+            // For 90° or 270° rotation, dimensions swap
+            let absRotation = abs(rotation)
+            if absRotation == 90 || absRotation == 270 {
+                effectiveSourceSize = CGSize(width: sourceSize.height, height: sourceSize.width)
+            }
         }
 
         let videoComposition = AVMutableVideoComposition()
 
         if let targetSize = targetSize {
             // Compute the scale to fit source into target, keeping aspect ratio.
-            let srcAspect = sourceSize.width / sourceSize.height
+            let srcAspect = effectiveSourceSize.width / effectiveSourceSize.height
             let dstAspect = targetSize.width / targetSize.height
 
             let scale: CGFloat
             if srcAspect > dstAspect {
                 // Source is wider — fit by width.
-                scale = targetSize.width / sourceSize.width
+                scale = targetSize.width / effectiveSourceSize.width
             } else {
                 // Source is taller — fit by height.
-                scale = targetSize.height / sourceSize.height
+                scale = targetSize.height / effectiveSourceSize.height
             }
 
-            let scaledWidth = sourceSize.width * scale
-            let scaledHeight = sourceSize.height * scale
+            let scaledWidth = effectiveSourceSize.width * scale
+            let scaledHeight = effectiveSourceSize.height * scale
             let offsetX = (targetSize.width - scaledWidth) / 2
             let offsetY = (targetSize.height - scaledHeight) / 2
 
@@ -394,7 +431,23 @@ class CompositionBuilder {
 
             videoComposition.renderSize = targetSize
         } else {
-            videoComposition.renderSize = sourceSize
+            videoComposition.renderSize = effectiveSourceSize
+        }
+
+        // Apply rotation around the center of the render size
+        if hasRotation {
+            let renderSize = videoComposition.renderSize
+            let rotationRadians = rotation * .pi / 180
+
+            // Rotate around center: translate origin to center, rotate, translate back
+            let centerX = renderSize.width / 2
+            let centerY = renderSize.height / 2
+
+            let fromCenter = CGAffineTransform(translationX: -centerX, y: -centerY)
+            let rotate = CGAffineTransform(rotationAngle: rotationRadians)
+            let toCenter = CGAffineTransform(translationX: centerX, y: centerY)
+
+            transform = transform.concatenating(fromCenter).concatenating(rotate).concatenating(toCenter)
         }
 
         instruction.setTransform(transform, at: .zero)
@@ -416,6 +469,7 @@ class CompositionBuilder {
         format: ExportFormat,
         videoBitRate: VideoBitRate,
         sourceBitRate: Int,
+        metadata: VideoMetadata?,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -430,6 +484,7 @@ class CompositionBuilder {
             // Direct passthrough - no re-encoding needed
             runPassthroughExport(
                 composition: composition,
+                metadata: metadata,
                 outputURL: outputURL,
                 progress: progress,
                 completion: completion
@@ -452,6 +507,7 @@ class CompositionBuilder {
             videoComposition: videoComposition,
             format: format,
             targetBitRate: targetBitRate,
+            metadata: metadata,
             outputURL: outputURL,
             progress: progress,
             completion: completion
@@ -461,6 +517,7 @@ class CompositionBuilder {
     /// Direct passthrough export - no re-encoding
     private static func runPassthroughExport(
         composition: AVMutableComposition,
+        metadata: VideoMetadata?,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -476,6 +533,11 @@ class CompositionBuilder {
         session.outputURL = outputURL
         session.outputFileType = .mp4
         session.shouldOptimizeForNetworkUse = true
+
+        // Apply metadata if available
+        if let meta = metadata {
+            session.metadata = meta.toMetadataItems()
+        }
 
         // Store session for cancellation
         MainViewController.exportSession = session
@@ -524,6 +586,7 @@ class CompositionBuilder {
         videoComposition: AVMutableVideoComposition?,
         format: ExportFormat,
         targetBitRate: Int,
+        metadata: VideoMetadata?,
         outputURL: URL,
         progress: @escaping (Double) -> Void,
         completion: @escaping (Result<Void, Error>) -> Void
@@ -564,6 +627,11 @@ class CompositionBuilder {
                 // Create asset writer
                 let writer = try AVAssetWriter(outputURL: outputURL, fileType: format.fileType)
                 ctx.writer = writer
+
+                // Apply metadata if available
+                if let meta = metadata {
+                    writer.metadata = meta.toMetadataItems()
+                }
 
                 // Video settings with target bitrate
                 let videoSettings: [String: Any] = [

@@ -257,10 +257,6 @@ jobs:
           exit 1
         fi
         echo ""
-        echo "6. Checking if codesign can access this identity..."
-        codesign --display-identity "$IDENTITY_HASH" 2>&1 || echo "(No display-identity support, continuing)"
-
-        echo ""
         echo "============================================"
         echo "SIGNING - Attempting to sign with identity"
         echo "============================================"
@@ -270,30 +266,73 @@ jobs:
         echo "==> Attempt 1: Signing with name 'Local Development Signing'..."
         echo "    Command: codesign --force --deep --sign 'Local Development Signing' ClipForge.app"
         echo ""
+        echo "Checking if ClipForge.app exists..."
+        if [ -d "ClipForge.app" ]; then
+          echo "✅ ClipForge.app exists"
+          echo "    Size: $(du -sh ClipForge.app | cut -f1)"
+          echo "    Location: $(pwd)/ClipForge.app"
+        else
+          echo "❌ ClipForge.app NOT FOUND in $(pwd)"
+          echo "    Directory contents:"
+          ls -la
+          exit 1
+        fi
+        echo ""
+        echo "Checking identity again before signing..."
+        security find-identity -v -p codesigning build.keychain
+        echo ""
+        echo "Running codesign..."
 
-        SIGN_OUTPUT=$(codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1)
+        # Temporarily disable exit on error to capture output
+        set +e
+        SIGN_OUTPUT=$(codesign --force --deep -vvvv --sign "Local Development Signing" ClipForge.app 2>&1)
         SIGN_EXIT=$?
+        set -e
 
+        echo "=========================================="
+        echo "SIGNING RESULT"
+        echo "=========================================="
         echo "Exit code: $SIGN_EXIT"
+        echo ""
         echo "Output:"
         echo "$SIGN_OUTPUT"
+        echo "=========================================="
 
         if [ $SIGN_EXIT -ne 0 ]; then
+          echo ""
           echo "❌ Failed with name (exit code: $SIGN_EXIT)"
           echo ""
           echo "==> Attempt 2: Signing with hash '$IDENTITY_HASH'..."
           echo "    Command: codesign --force --deep --sign '$IDENTITY_HASH' ClipForge.app"
           echo ""
 
-          SIGN_OUTPUT=$(codesign --force --deep --sign "$IDENTITY_HASH" ClipForge.app 2>&1)
+          set +e
+          SIGN_OUTPUT=$(codesign --force --deep -vvvv --sign "$IDENTITY_HASH" ClipForge.app 2>&1)
           SIGN_EXIT=$?
+          set -e
 
+          echo "=========================================="
+          echo "SIGNING RESULT (Attempt 2)"
+          echo "=========================================="
           echo "Exit code: $SIGN_EXIT"
+          echo ""
           echo "Output:"
           echo "$SIGN_OUTPUT"
+          echo "=========================================="
 
           if [ $SIGN_EXIT -ne 0 ]; then
+            echo ""
             echo "❌ ERROR: Signing failed with both name and hash"
+            echo ""
+            echo "Additional diagnostics:"
+            echo "  - Keychain list:"
+            security list-keychains
+            echo ""
+            echo "  - Identities in build.keychain:"
+            security find-identity -v -p codesigning build.keychain
+            echo ""
+            echo "  - codesign version:"
+            codesign --version 2>&1 || true
             exit 1
           fi
         fi

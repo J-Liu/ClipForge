@@ -166,8 +166,10 @@ jobs:
         echo "4. Setting default keychain..."
         security default-keychain -s build.keychain && echo "✅ Default set"
         echo ""
-        echo "5. Setting keychain list..."
-        security list-keychains -s build.keychain && echo "✅ List set"
+        echo "5. Setting keychain list to ONLY build.keychain..."
+        security list-keychains -s "/Users/runner/Library/Keychains/build.keychain-db"
+        echo "Keychain list after setting:"
+        security list-keychains
         echo ""
         echo "6. Keychain state after unlock:"
         security show-keychain-info build.keychain

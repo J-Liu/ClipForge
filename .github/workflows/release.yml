@@ -28,32 +28,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
-    - name: Import signing certificate
-      run: |
-        # Decode .p12 from secret
-        echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
-
-        # Create and unlock a temporary keychain
-        security create-keychain -p "" build.keychain
-        security default-keychain -s build.keychain
-        security unlock-keychain -p "" build.keychain
-
-        # Import the .p12
-        security import /tmp/cert.p12 -k build.keychain \
-          -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
-          -T /usr/bin/codesign
-
-        # Allow codesign to access the key without prompting
-        security set-key-partition-list -S apple-tool:,apple:,codesign: \
-          -s -k "" build.keychain
-
-        # Export the certificate part as PEM and add it as trusted
-        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
-        sudo security add-trusted-cert -d -r trustRoot \
-          -k /Library/Keychains/System.keychain /tmp/cert.pem
-
-        rm /tmp/cert.p12 /tmp/cert.pem
-
     - name: Install build dependencies
       run: brew install librsvg
 
@@ -96,32 +70,33 @@ jobs:
         chmod +x build.sh
         ./build.sh
 
-    - name: Unlock keychain before signing
+    - name: Import signing certificate
       run: |
-        echo "==> Ensuring keychain is unlocked..."
-        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
-        security default-keychain -s build.keychain && echo "✅ Default keychain set"
-        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
-        echo ""
-        echo "==> Verifying keychain state:"
-        security show-keychain-info build.keychain
-        echo ""
-        echo "==> Checking for signing certificate..."
-        if security find-identity -v -p codesigning build.keychain | grep -q "Local Development Signing"; then
-          echo "✅ Certificate found"
-        else
-          echo "❌ Certificate not found in build.keychain"
-          echo "==> Available identities:"
-          security find-identity -v -p codesigning build.keychain
-          echo ""
-          echo "==> Re-importing certificate..."
-          echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
-          security import /tmp/cert.p12 -k build.keychain \
-            -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
-            -T /usr/bin/codesign
-          rm /tmp/cert.p12
-          echo "✅ Certificate re-imported"
-        fi
+        echo "==> Creating keychain..."
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+
+        echo "==> Importing certificate..."
+        echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
+        security import /tmp/cert.p12 -k build.keychain \
+          -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
+          -T /usr/bin/codesign
+
+        echo "==> Setting key partition list..."
+        security set-key-partition-list -S apple-tool:,apple:,codesign: \
+          -s -k "" build.keychain
+
+        echo "==> Adding certificate to trusted root..."
+        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
+        sudo security add-trusted-cert -d -r trustRoot \
+          -k /Library/Keychains/System.keychain /tmp/cert.pem
+
+        rm /tmp/cert.p12 /tmp/cert.pem
+
+        echo "==> Verifying certificate..."
+        security find-identity -v -p codesigning build.keychain
+        echo "✅ Certificate imported"
 
     - name: Sign app
       run: |

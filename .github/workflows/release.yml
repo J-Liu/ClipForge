@@ -67,6 +67,58 @@ jobs:
         chmod +x build.sh
         ./build.sh
 
+    - name: Unlock keychain before signing
+      run: |
+        echo "==> Ensuring keychain is unlocked..."
+        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
+        security default-keychain -s build.keychain && echo "✅ Default keychain set"
+        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
+        echo ""
+        echo "==> Verifying keychain state:"
+        security show-keychain-info build.keychain
+
+    - name: Sign app
+      run: |
+        echo "==> Starting signing process..."
+        for i in 1 2 3 4; do
+          echo ""
+          echo "==> Attempt $i of 4"
+          echo "==> Running codesign with 60 second timeout..."
+          if perl -e '$SIG{ALRM} = sub { exit 14 }; alarm 60; exec @ARGV or exit 1' -- codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1 | tee /tmp/sign.log; then
+            echo "✅ Signed successfully on attempt $i"
+            echo ""
+            echo "==> Verifying signature..."
+            codesign -dvvv ClipForge.app 2>&1 | head -20
+            exit 0
+          fi
+
+          EXIT_CODE=$?
+          echo "❌ Attempt $i failed with exit code $EXIT_CODE"
+          echo ""
+          echo "==> Sign log output:"
+          cat /tmp/sign.log
+          echo ""
+
+          if grep -q "timestamp service is not available\|A timestamp was expected but was not found" /tmp/sign.log 2>/dev/null; then
+            echo "==> Diagnosis: Timestamp service unavailable"
+          elif grep -q "no identity found\|could not find" /tmp/sign.log 2>/dev/null; then
+            echo "==> Diagnosis: Certificate not found by codesign"
+          elif [ $EXIT_CODE -eq 14 ]; then
+            echo "==> Diagnosis: Timeout after 60 seconds (no response)"
+          else
+            echo "==> Diagnosis: Other error (see log above)"
+          fi
+
+          if [ $i -lt 4 ]; then
+            echo "==> Waiting 15 seconds before retry..."
+            sleep 15
+          fi
+        done
+
+        echo ""
+        echo "❌ All 4 attempts failed"
+        exit 1
+
     - name: Create ZIP for Sparkle
       if: startsWith(github.ref, 'refs/tags/')
       run: |

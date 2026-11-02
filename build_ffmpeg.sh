@@ -91,26 +91,36 @@ echo ""
 cd "$FFMPEG_KIT_DIR"
 
 BUILD_LOG="$SCRIPT_DIR/$FFMPEG_KIT_DIR/build.log"
-touch "$BUILD_LOG"
+# Clear previous log
+> "$BUILD_LOG"
+
 echo "    Build log: $BUILD_LOG"
 echo ""
 
-# Function to stop tail
-stop_tail() {
-    if [ -n "$TAIL_PID" ]; then
-        kill $TAIL_PID 2>/dev/null || true
+# Function to stop background processes
+stop_monitors() {
+    if [ -n "$INFO_PID" ]; then
+        kill $INFO_PID 2>/dev/null || true
     fi
 }
 
-# Trap to ensure tail is stopped on exit
-trap stop_tail EXIT
+# Trap to ensure cleanup on exit
+trap stop_monitors EXIT
 
-# Tail build.log in background, showing progress
-tail -f "$BUILD_LOG" 2>/dev/null &
-TAIL_PID=$!
+# Monitor build.log for INFO lines (key milestones)
+{
+    while IFS= read -r line; do
+        if [[ "$line" == INFO:* ]]; then
+            # Extract the key info
+            info="${line#INFO: }"
+            echo "    ▶ $info"
+        fi
+    done < <(tail -f "$BUILD_LOG" 2>/dev/null)
+} &
+INFO_PID=$!
 
 # Run the build
-echo "    Starting build..."
+echo "    Starting Nix build..."
 echo ""
 
 ./nix-macos.sh \
@@ -122,8 +132,8 @@ echo ""
 
 BUILD_EXIT=$?
 
-# Stop tailing
-stop_tail
+# Stop monitors
+stop_monitors
 trap - EXIT
 
 # ============================================

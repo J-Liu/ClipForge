@@ -246,33 +246,20 @@ jobs:
         echo "Identity hash: $IDENTITY_HASH"
         echo ""
 
-        # Function to check if signature is adhoc
-        is_adhoc() {
-          codesign -dvvv ClipForge.app 2>&1 | grep -q "Signature=adhoc"
-        }
-
         # Try signing with name first
         echo "==> Attempt 1: Signing with name 'Local Development Signing'..."
-        codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1 | head -20
-        echo ""
-
-        if is_adhoc; then
-          echo "❌ Signature is adhoc (certificate not found by name)"
+        if ! codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1 | tee /tmp/sign.log; then
+          echo "❌ Failed with name, trying with hash..."
           echo ""
           echo "==> Attempt 2: Signing with hash '$IDENTITY_HASH'..."
-          codesign --force --deep --sign "$IDENTITY_HASH" ClipForge.app 2>&1 | head -20
-          echo ""
-
-          if is_adhoc; then
-            echo "❌ Signature is still adhoc"
-            echo "==> ERROR: Could not sign with certificate"
+          if ! codesign --force --deep --sign "$IDENTITY_HASH" ClipForge.app 2>&1 | tee /tmp/sign.log; then
+            echo "❌ ERROR: Signing failed"
             exit 1
           fi
         fi
 
-        echo "✅ Signature verified (not adhoc)"
         echo ""
-        echo "==> Final verification..."
+        echo "==> Verifying signature..."
         codesign -dvvv ClipForge.app 2>&1 | head -30
 
     - name: Create ZIP for Sparkle

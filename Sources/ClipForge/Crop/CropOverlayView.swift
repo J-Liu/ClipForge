@@ -40,6 +40,21 @@ class CropOverlayView: NSView {
         }
     }
 
+    /// Set the selection rect explicitly (used to restore selection after rotation).
+    func setSelectionRect(_ rect: NSRect) {
+        guard !contentRect.isEmpty else { return }
+        // Clamp to content rect
+        var clamped = rect
+        clamped.origin.x = max(contentRect.minX, min(contentRect.maxX - rect.width, rect.minX))
+        clamped.origin.y = max(contentRect.minY, min(contentRect.maxY - rect.height, rect.minY))
+        clamped.size.width = min(rect.width, contentRect.width)
+        clamped.size.height = min(rect.height, contentRect.height)
+        selectionRect = clamped
+        hasInitializedSelection = true
+        needsDisplay = true
+        onSelectionChanged?(selectionRect)
+    }
+
     // MARK: - Private state
 
     private var hasInitializedSelection = false

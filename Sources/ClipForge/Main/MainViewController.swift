@@ -52,7 +52,9 @@ class MainViewController: NSViewController {
 
     let cropOverlay = CropOverlayView()
     var videoNaturalSize: CGSize = .zero
-    var cropRect: NSRect?
+    /// Crop rect in original video coordinates (independent of rotation).
+    /// When displaying, this is converted to effective coordinates based on current rotation.
+    var originalCropRect: NSRect?
     private var timeControlStatusObservation: NSKeyValueObservation?
 
     let recorder = RecorderController()
@@ -622,21 +624,20 @@ class MainViewController: NSViewController {
     }
 
     @objc func rotateVideoLeft() {
-        playerView.rotateCounterClockwise()
+        playerView.rotateClockwise()
         updateOverlayForRotation()
     }
 
     @objc func rotateVideoRight() {
-        playerView.rotateClockwise()
+        playerView.rotateCounterClockwise()
         updateOverlayForRotation()
     }
 
     private func updateOverlayForRotation() {
         // Update the content rect to match the rotated video display
         // videoDisplayRect now uses effective (swapped) dimensions for 90°/270° rotations
+        // updateOverlayContentRect will preserve the selection from effectiveCropRect
         updateOverlayContentRect()
-        // Reset the selection to match the new dimensions
-        cropOverlay.resetSelection()
     }
 
     func stepFrames(_ count: Int) {

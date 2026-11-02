@@ -54,8 +54,42 @@ jobs:
 
         rm /tmp/cert.p12 /tmp/cert.pem
 
-    - name: Install librsvg
-      run: brew install librsvg
+    - name: Install build dependencies
+      run: brew install librsvg gnu-sed
+
+    - name: Cache FFmpeg build
+      id: cache-ffmpeg
+      uses: actions/cache@v4
+      with:
+        path: |
+          ffmpeg-kit-next-9.0.0/prebuilt
+          Packages/FFmpegKit/*.xcframework
+        key: ${{ runner.os }}-ffmpeg-${{ hashFiles('build_ffmpeg.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-ffmpeg-
+
+    - name: Build FFmpegKit
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      run: |
+        # Download ffmpeg-kit-next
+        curl -L -o /tmp/ffmpeg-kit.tar.gz https://github.com/arthenica/ffmpeg-kit-next/archive/refs/tags/v9.0.0.tar.gz
+        tar -xzf /tmp/ffmpeg-kit.tar.gz
+        mv ffmpeg-kit-next-9.0.0 ffmpeg-kit-next-9.0.0
+
+        cd ffmpeg-kit-next-9.0.0
+
+        # Use GNU sed
+        export SED="gsed"
+
+        # Build macOS xcframework
+        ./macos.sh \
+          -x \
+          --enable-lib-macos-videotoolbox \
+          --enable-lib-macos-audiotoolbox \
+          --enable-lib-macos-avfoundation
+
+        # Copy xcframeworks to Packages/FFmpegKit
+        cp -r prebuilt/bundle-apple-xcframework-macos-10.15/*.xcframework ../Packages/FFmpegKit/
 
     - name: Generate icon
       run: |

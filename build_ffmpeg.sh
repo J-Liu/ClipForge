@@ -69,10 +69,11 @@ echo ""
 # ============================================
 # Step 4: Extract tarball
 # ============================================
-if [ -d "$FFMPEG_KIT_DIR" ]; then
-    echo "==> [Step 4/7] Source directory exists, skipping extraction"
+if [ -d "$FFMPEG_KIT_DIR" ] && [ -f "$FFMPEG_KIT_DIR/nix-macos.sh" ]; then
+    echo "==> [Step 4/7] Source directory exists and valid, skipping extraction"
 else
     echo "==> [Step 4/7] Extracting tarball..."
+    rm -rf "$FFMPEG_KIT_DIR"
     tar -xzf "$TARBALL_PATH" -C "$CACHE_DIR"
     mv "$CACHE_DIR/ffmpeg-kit-next-${VERSION}" "$FFMPEG_KIT_DIR"
     echo "    ✅ Extracted to: $FFMPEG_KIT_DIR"
@@ -89,6 +90,14 @@ echo "    Target SDK: 10.15"
 echo ""
 
 cd "$FFMPEG_KIT_DIR"
+
+# Verify we're in the right place
+if [ ! -f "nix-macos.sh" ]; then
+    echo "    ❌ ERROR: nix-macos.sh not found in $(pwd)"
+    echo "    Directory contents:"
+    ls -la
+    exit 1
+fi
 
 BUILD_LOG="$SCRIPT_DIR/$FFMPEG_KIT_DIR/build.log"
 # Clear previous log

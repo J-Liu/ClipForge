@@ -81,11 +81,18 @@ jobs:
         export SED="gsed"
 
         # Build macOS xcframework
-        ./macos.sh \
+        if ! ./macos.sh \
           -x \
           --enable-lib-macos-videotoolbox \
           --enable-lib-macos-audiotoolbox \
-          --enable-lib-macos-avfoundation
+          --enable-lib-macos-avfoundation; then
+          echo ""
+          echo "==> FFmpegKit build failed. Showing last 200 lines of build.log:"
+          echo "=========================================="
+          tail -200 build.log
+          echo "=========================================="
+          exit 1
+        fi
 
         # Copy xcframeworks to Packages/FFmpegKit
         cp -r prebuilt/bundle-apple-xcframework-macos-10.15/*.xcframework ../Packages/FFmpegKit/

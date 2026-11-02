@@ -209,6 +209,18 @@ class MenuBuilder {
         rotateRight.target = AppActions.shared
         menu.addItem(rotateRight)
 
+        let flipHorizontal = NSMenuItem(title: L("menu.edit.flipHorizontal"),
+                                        action: #selector(AppActions.flipHorizontal),
+                                        keyEquivalent: "h")
+        flipHorizontal.target = AppActions.shared
+        menu.addItem(flipHorizontal)
+
+        let flipVertical = NSMenuItem(title: L("menu.edit.flipVertical"),
+                                      action: #selector(AppActions.flipVertical),
+                                      keyEquivalent: "v")
+        flipVertical.target = AppActions.shared
+        menu.addItem(flipVertical)
+
         item.submenu = menu
         return item
     }

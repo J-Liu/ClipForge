@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
 class PlayerView: NSView {
     private let playerLayer = AVPlayerLayer()
     private var currentRotation: CGFloat = 0
+    private var horizontalFlip: Bool = false
+    private var verticalFlip: Bool = false
 
     /// Called when files are dropped. The Bool is true if the user held ⌘ (replace).
     var onFilesDropped: (([URL], Bool) -> Void)?
@@ -90,6 +92,30 @@ class PlayerView: NSView {
         applyRotation()
     }
 
+    /// Toggle horizontal flip (mirror left-right).
+    func flipHorizontal() {
+        horizontalFlip.toggle()
+        applyRotation()
+    }
+
+    /// Toggle vertical flip (mirror up-down).
+    func flipVertical() {
+        verticalFlip.toggle()
+        applyRotation()
+    }
+
+    /// Reset all transforms to default.
+    func resetTransforms() {
+        currentRotation = 0
+        horizontalFlip = false
+        verticalFlip = false
+        applyRotation()
+    }
+
+    /// Current flip state for export.
+    var isHorizontallyFlipped: Bool { horizontalFlip }
+    var isVerticallyFlipped: Bool { verticalFlip }
+
     private func applyRotation() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -112,8 +138,20 @@ class PlayerView: NSView {
             playerLayer.frame = bounds
         }
 
-        // Now apply the rotation transform
-        playerLayer.transform = CATransform3DMakeRotation(currentRotation * .pi / 180, 0, 0, 1)
+        // Build the transform: rotation first, then flip
+        var transform = CATransform3DMakeRotation(currentRotation * .pi / 180, 0, 0, 1)
+
+        // Apply horizontal flip (scale X by -1)
+        if horizontalFlip {
+            transform = CATransform3DScale(transform, -1, 1, 1)
+        }
+
+        // Apply vertical flip (scale Y by -1)
+        if verticalFlip {
+            transform = CATransform3DScale(transform, 1, -1, 1)
+        }
+
+        playerLayer.transform = transform
 
         CATransaction.commit()
     }

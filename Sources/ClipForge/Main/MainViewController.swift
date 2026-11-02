@@ -116,6 +116,22 @@ class MainViewController: NSViewController {
         return b
     }()
 
+    let flipHorizontalButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "arrow.left.arrow.right",
+                                        accessibilityDescription: L("main.tooltip.flipHorizontal"))!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
+    let flipVerticalButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "arrow.up.arrow.down",
+                                        accessibilityDescription: L("main.tooltip.flipVertical"))!,
+                         target: nil, action: nil)
+        b.bezelStyle = .rounded
+        return b
+    }()
+
     var segmentListWindowController: SegmentListWindowController?
 
     override func loadView() {
@@ -254,6 +270,8 @@ class MainViewController: NSViewController {
         segmentListButton.translatesAutoresizingMaskIntoConstraints = false
         rotateLeftButton.translatesAutoresizingMaskIntoConstraints = false
         rotateRightButton.translatesAutoresizingMaskIntoConstraints = false
+        flipHorizontalButton.translatesAutoresizingMaskIntoConstraints = false
+        flipVerticalButton.translatesAutoresizingMaskIntoConstraints = false
 
         setButton.target = self
         setButton.action = #selector(addCutPoint)
@@ -319,6 +337,14 @@ class MainViewController: NSViewController {
         rotateRightButton.action = #selector(rotateVideoRight)
         rotateRightButton.toolTip = L("main.tooltip.rotateRight")
 
+        flipHorizontalButton.target = self
+        flipHorizontalButton.action = #selector(flipVideoHorizontal)
+        flipHorizontalButton.toolTip = L("main.tooltip.flipHorizontal")
+
+        flipVerticalButton.target = self
+        flipVerticalButton.action = #selector(flipVideoVertical)
+        flipVerticalButton.toolTip = L("main.tooltip.flipVertical")
+
         segmentBar.onCutPointAdded = { [weak self] time in
             self?.addCutPointAt(time)
         }
@@ -362,6 +388,8 @@ class MainViewController: NSViewController {
         view.addSubview(segmentListButton)
         view.addSubview(rotateLeftButton)
         view.addSubview(rotateRightButton)
+        view.addSubview(flipHorizontalButton)
+        view.addSubview(flipVerticalButton)
 
         timeInputView.onSeek = { [weak self] time in
             self?.playerController.seek(to: time)
@@ -478,7 +506,13 @@ class MainViewController: NSViewController {
             rotateRightButton.leadingAnchor.constraint(equalTo: rotateLeftButton.trailingAnchor, constant: 8),
             rotateRightButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
 
-            separator.leadingAnchor.constraint(greaterThanOrEqualTo: rotateRightButton.trailingAnchor, constant: 12),
+            flipHorizontalButton.leadingAnchor.constraint(equalTo: rotateRightButton.trailingAnchor, constant: 8),
+            flipHorizontalButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            flipVerticalButton.leadingAnchor.constraint(equalTo: flipHorizontalButton.trailingAnchor, constant: 8),
+            flipVerticalButton.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
+
+            separator.leadingAnchor.constraint(greaterThanOrEqualTo: flipVerticalButton.trailingAnchor, constant: 12),
             separator.trailingAnchor.constraint(equalTo: recordButton.leadingAnchor, constant: -12),
             separator.centerYAnchor.constraint(equalTo: setButton.centerYAnchor),
             separator.heightAnchor.constraint(equalToConstant: 20),
@@ -631,6 +665,16 @@ class MainViewController: NSViewController {
 
     @objc func rotateVideoRight() {
         playerView.rotateCounterClockwise()
+        updateOverlayForRotation()
+    }
+
+    @objc func flipVideoHorizontal() {
+        playerView.flipHorizontal()
+        updateOverlayForRotation()
+    }
+
+    @objc func flipVideoVertical() {
+        playerView.flipVertical()
         updateOverlayForRotation()
     }
 

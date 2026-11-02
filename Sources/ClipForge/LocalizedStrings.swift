@@ -128,6 +128,8 @@ let enStrings: [String: String] = [
     "menu.edit.selectAll": "Select All",
     "menu.edit.rotateLeft": "Rotate Left",
     "menu.edit.rotateRight": "Rotate Right",
+    "menu.edit.flipHorizontal": "Flip Horizontal",
+    "menu.edit.flipVertical": "Flip Vertical",
 
     // Menu - Playback
     "menu.playback": "Playback",
@@ -172,6 +174,8 @@ let enStrings: [String: String] = [
     "main.tooltip.segmentList": "Show segment list",
     "main.tooltip.rotateLeft": "Rotate left",
     "main.tooltip.rotateRight": "Rotate right",
+    "main.tooltip.flipHorizontal": "Flip horizontal",
+    "main.tooltip.flipVertical": "Flip vertical",
     "main.segmentList.title": "Segments",
 
     // Errors
@@ -369,6 +373,8 @@ let zhHansStrings: [String: String] = [
     "menu.edit.selectAll": "全选",
     "menu.edit.rotateLeft": "逆时针旋转",
     "menu.edit.rotateRight": "顺时针旋转",
+    "menu.edit.flipHorizontal": "水平翻转",
+    "menu.edit.flipVertical": "垂直翻转",
 
     // Menu - Playback
     "menu.playback": "播放",
@@ -413,6 +419,8 @@ let zhHansStrings: [String: String] = [
     "main.tooltip.segmentList": "显示片段列表",
     "main.tooltip.rotateLeft": "逆时针旋转",
     "main.tooltip.rotateRight": "顺时针旋转",
+    "main.tooltip.flipHorizontal": "水平翻转",
+    "main.tooltip.flipVertical": "垂直翻转",
     "main.segmentList.title": "片段",
 
     // Errors
@@ -610,6 +618,8 @@ let zhHantStrings: [String: String] = [
     "menu.edit.selectAll": "全選",
     "menu.edit.rotateLeft": "逆時針旋轉",
     "menu.edit.rotateRight": "順時針旋轉",
+    "menu.edit.flipHorizontal": "水平翻轉",
+    "menu.edit.flipVertical": "垂直翻轉",
 
     // Menu - Playback
     "menu.playback": "播放",
@@ -654,6 +664,8 @@ let zhHantStrings: [String: String] = [
     "main.tooltip.segmentList": "顯示片段列表",
     "main.tooltip.rotateLeft": "逆時針旋轉",
     "main.tooltip.rotateRight": "順時針旋轉",
+    "main.tooltip.flipHorizontal": "水平翻轉",
+    "main.tooltip.flipVertical": "垂直翻轉",
     "main.segmentList.title": "片段",
 
     // Errors

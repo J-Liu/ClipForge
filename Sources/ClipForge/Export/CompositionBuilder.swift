@@ -180,6 +180,8 @@ class CompositionBuilder {
     ///   - segments: all segments on the global timeline, with isKept marking which to include
     ///   - cropRect: optional crop rectangle in video pixel coordinates
     ///   - rotation: additional rotation angle in degrees (0, 90, -90, 180, -180, 270, -270)
+    ///   - horizontalFlip: whether to flip the video horizontally
+    ///   - verticalFlip: whether to flip the video vertically
     ///   - outputURL: destination file URL
     ///   - progress: called on main thread with 0.0...1.0
     ///   - completion: called on main thread with success or error
@@ -188,6 +190,8 @@ class CompositionBuilder {
         segments: [Segment],
         cropRect: NSRect?,
         rotation: CGFloat,
+        horizontalFlip: Bool,
+        verticalFlip: Bool,
         resolution: ExportResolution,
         frameRate: ExportFrameRate,
         format: ExportFormat,
@@ -312,7 +316,9 @@ class CompositionBuilder {
                     cropRect: cropRect,
                     targetSize: resolution.size,
                     targetFPS: frameRate.value,
-                    rotation: rotation
+                    rotation: rotation,
+                    horizontalFlip: horizontalFlip,
+                    verticalFlip: verticalFlip
                 )
 
                 // Get metadata from first clip
@@ -344,7 +350,9 @@ class CompositionBuilder {
         cropRect: NSRect?,
         targetSize: CGSize?,
         targetFPS: Int?,
-        rotation: CGFloat = 0
+        rotation: CGFloat = 0,
+        horizontalFlip: Bool = false,
+        verticalFlip: Bool = false
     ) -> AVMutableVideoComposition? {
         guard let videoTrack = composition.tracks(withMediaType: .video).first else {
             return nil
@@ -476,6 +484,23 @@ class CompositionBuilder {
                 transform = transform.concatenating(cropTranslate)
                 Log("makeVideoComposition: applying crop translation: x=\(-cropRect.origin.x), y=\(translateY)")
             }
+        }
+
+        // Apply flip transformations after rotation and crop
+        if horizontalFlip || verticalFlip {
+            let scaleX: CGFloat = horizontalFlip ? -1 : 1
+            let scaleY: CGFloat = verticalFlip ? -1 : 1
+
+            // Flip around the center of the render
+            let centerX = finalRenderSize.width / 2
+            let centerY = finalRenderSize.height / 2
+
+            let fromCenter = CGAffineTransform(translationX: -centerX, y: -centerY)
+            let flip = CGAffineTransform(scaleX: scaleX, y: scaleY)
+            let toCenter = CGAffineTransform(translationX: centerX, y: centerY)
+
+            transform = transform.concatenating(fromCenter).concatenating(flip).concatenating(toCenter)
+            Log("makeVideoComposition: applying flip h=\(horizontalFlip), v=\(verticalFlip)")
         }
 
         let videoComposition = AVMutableVideoComposition()

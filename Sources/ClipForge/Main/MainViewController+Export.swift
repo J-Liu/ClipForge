@@ -221,6 +221,8 @@ extension MainViewController {
             segments: segments,
             cropRect: cropRectForExport(),
             rotation: playerView.rotationDegrees,
+            horizontalFlip: playerView.isHorizontallyFlipped,
+            verticalFlip: playerView.isVerticallyFlipped,
             resolution: resolution,
             frameRate: frameRate,
             format: format,

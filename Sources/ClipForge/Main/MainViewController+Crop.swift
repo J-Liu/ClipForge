@@ -69,23 +69,18 @@ extension MainViewController {
         let normalized = normalizedRotation(rotation)
         let origW = videoNaturalSize.width
         let origH = videoNaturalSize.height
-
-        // Rotation matrix transformation:
-        // For counter-clockwise rotation by angle θ:
-        //   x' = x*cos(θ) - y*sin(θ)
-        //   y' = x*sin(θ) + y*cos(θ)
-        // But we're rotating the COORDINATE SYSTEM, not the points,
-        // so we apply the inverse rotation to the points.
+        let hFlip = playerView.isHorizontallyFlipped
+        let vFlip = playerView.isVerticallyFlipped
 
         return points.map { point in
-            transformPoint(point, rotation: normalized, origW: origW, origH: origH)
+            transformPoint(point, rotation: normalized, hFlip: hFlip, vFlip: vFlip, origW: origW, origH: origH)
         }
     }
 
     /// Transform a single point from original to effective coordinates.
     /// Uses center-based coordinate system for simpler rotation math.
-    private func transformPoint(_ point: CGPoint, rotation: Int, origW: CGFloat, origH: CGFloat) -> CGPoint {
-        guard rotation != 0 else { return point }
+    private func transformPoint(_ point: CGPoint, rotation: Int, hFlip: Bool, vFlip: Bool, origW: CGFloat, origH: CGFloat) -> CGPoint {
+        guard rotation != 0 || hFlip || vFlip else { return point }
 
         // Convert to center-based coordinates (origin at center, Y up)
         let centerX = origW / 2
@@ -109,8 +104,16 @@ extension MainViewController {
         let newCenterX = effectiveW / 2
         let newCenterY = effectiveH / 2
 
-        let effectiveX = newCenterX + newX
-        let effectiveY = newCenterY - newY
+        var effectiveX = newCenterX + newX
+        var effectiveY = newCenterY - newY
+
+        // Apply flip transformations
+        if hFlip {
+            effectiveX = effectiveW - effectiveX
+        }
+        if vFlip {
+            effectiveY = effectiveH - effectiveY
+        }
 
         return CGPoint(x: effectiveX, y: effectiveY)
     }
@@ -120,33 +123,45 @@ extension MainViewController {
         let normalized = normalizedRotation(rotation)
         let origW = videoNaturalSize.width
         let origH = videoNaturalSize.height
+        let hFlip = playerView.isHorizontallyFlipped
+        let vFlip = playerView.isVerticallyFlipped
 
         return points.map { point in
-            inverseTransformPoint(point, rotation: normalized, origW: origW, origH: origH)
+            inverseTransformPoint(point, rotation: normalized, hFlip: hFlip, vFlip: vFlip, origW: origW, origH: origH)
         }
     }
 
     /// Inverse transform a point from effective to original coordinates.
     /// Uses center-based coordinate system - apply the original rotation (not negated).
-    private func inverseTransformPoint(_ point: CGPoint, rotation: Int, origW: CGFloat, origH: CGFloat) -> CGPoint {
-        guard rotation != 0 else { return point }
+    private func inverseTransformPoint(_ point: CGPoint, rotation: Int, hFlip: Bool, vFlip: Bool, origW: CGFloat, origH: CGFloat) -> CGPoint {
+        guard rotation != 0 || hFlip || vFlip else { return point }
 
         // Effective dimensions (swapped for 90°/270°)
         let effectiveW = (rotation == 90 || rotation == 270) ? origH : origW
         let effectiveH = (rotation == 90 || rotation == 270) ? origW : origH
 
+        // First undo flip transformations
+        var x = point.x
+        var y = point.y
+        if hFlip {
+            x = effectiveW - x
+        }
+        if vFlip {
+            y = effectiveH - y
+        }
+
         // Convert to center-based coordinates
         let centerX = effectiveW / 2
         let centerY = effectiveH / 2
-        let x = point.x - centerX
-        let y = centerY - point.y
+        let relX = x - centerX
+        let relY = centerY - y
 
         // Forward transform uses -rotation, so inverse uses +rotation
         let rotationRadians = Double(rotation) * .pi / 180
         let cosR = cos(rotationRadians)
         let sinR = sin(rotationRadians)
-        let newX = x * cosR - y * sinR
-        let newY = x * sinR + y * cosR
+        let newX = relX * cosR - relY * sinR
+        let newY = relX * sinR + relY * cosR
 
         // Convert back to original video coordinates
         let origCenterX = origW / 2

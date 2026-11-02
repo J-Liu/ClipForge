@@ -71,6 +71,9 @@ class AppActions {
     @objc func rotateLeft() { mainViewController?.rotateVideoLeft() }
     @objc func rotateRight() { mainViewController?.rotateVideoRight() }
 
+    @objc func flipHorizontal() { mainViewController?.flipVideoHorizontal() }
+    @objc func flipVertical() { mainViewController?.flipVideoVertical() }
+
     @objc func showAbout() {
         SettingsWindowController.shared.showAboutTab()
     }

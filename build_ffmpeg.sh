@@ -12,55 +12,88 @@ CACHE_DIR="$SCRIPT_DIR/.cache"
 
 cd "$SCRIPT_DIR"
 
-# Source Nix daemon profile first (may fix PATH)
+echo "=========================================="
+echo "FFmpegKit Build Script"
+echo "=========================================="
+echo "Version: ${VERSION}"
+echo "Script dir: ${SCRIPT_DIR}"
+echo "Cache dir: ${CACHE_DIR}"
+echo "=========================================="
+echo ""
+
+# ============================================
+# Step 1: Check Nix installation
+# ============================================
+echo "==> [Step 1/7] Checking Nix installation..."
+
 if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]; then
+    echo "    Sourcing Nix daemon profile..."
     source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 fi
 
-# Check Nix installation
 if ! command -v nix &> /dev/null; then
-    echo "ERROR: Nix not found"
+    echo "    ❌ ERROR: Nix not found"
     echo ""
-    echo "Nix may need to be reinstalled. Run:"
-    echo "  curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install | sh"
+    echo "    Nix may need to be reinstalled. Run:"
+    echo "      curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install | sh"
     exit 1
 fi
 
-echo "==> Nix found: $(nix --version)"
+echo "    ✅ Nix found: $(nix --version)"
+echo ""
 
-# Create cache directory
+# ============================================
+# Step 2: Create cache directory
+# ============================================
+echo "==> [Step 2/7] Creating cache directory..."
 mkdir -p "$CACHE_DIR"
+echo "    ✅ Done"
+echo ""
 
-# Download and extract tarball (reuse if exists)
+# ============================================
+# Step 3: Download tarball
+# ============================================
 TARBALL_PATH="$CACHE_DIR/ffmpeg-kit-next-${VERSION}.tar.gz"
 
-if [ ! -d "$FFMPEG_KIT_DIR" ]; then
-    if [ ! -f "$TARBALL_PATH" ]; then
-        echo "==> Downloading ffmpeg-kit-next v${VERSION} tarball..."
-        curl -L -o "$TARBALL_PATH" "$TARBALL_URL"
-    else
-        echo "==> Using cached tarball"
-    fi
+if [ -f "$TARBALL_PATH" ]; then
+    echo "==> [Step 3/7] Using cached tarball: $TARBALL_PATH"
+    echo "    Size: $(ls -lh "$TARBALL_PATH" | awk '{print $5}')"
+else
+    echo "==> [Step 3/7] Downloading ffmpeg-kit-next v${VERSION}..."
+    echo "    URL: $TARBALL_URL"
+    curl -L -o "$TARBALL_PATH" "$TARBALL_URL"
+    echo "    ✅ Downloaded: $(ls -lh "$TARBALL_PATH" | awk '{print $5}')"
+fi
+echo ""
 
-    echo "==> Extracting..."
+# ============================================
+# Step 4: Extract tarball
+# ============================================
+if [ -d "$FFMPEG_KIT_DIR" ]; then
+    echo "==> [Step 4/7] Source directory exists, skipping extraction"
+else
+    echo "==> [Step 4/7] Extracting tarball..."
     tar -xzf "$TARBALL_PATH" -C "$CACHE_DIR"
     mv "$CACHE_DIR/ffmpeg-kit-next-${VERSION}" "$FFMPEG_KIT_DIR"
-else
-    echo "==> $FFMPEG_KIT_DIR directory exists, skipping download"
+    echo "    ✅ Extracted to: $FFMPEG_KIT_DIR"
 fi
+echo ""
+
+# ============================================
+# Step 5: Build FFmpegKit
+# ============================================
+echo "==> [Step 5/7] Building FFmpegKit for macOS..."
+echo "    Features: VideoToolbox, AudioToolbox, AVFoundation"
+echo "    Build type: xcframework"
+echo "    Target SDK: 10.15"
+echo ""
 
 cd "$FFMPEG_KIT_DIR"
 
-# Build macOS xcframework
-echo ""
-echo "==> Building FFmpeg for macOS..."
-echo "==> Version: ${VERSION}"
-echo "==> Features: VideoToolbox, AudioToolbox, AVFoundation"
-echo ""
-
-# Start tailing build.log in background to show progress
 BUILD_LOG="$SCRIPT_DIR/$FFMPEG_KIT_DIR/build.log"
 touch "$BUILD_LOG"
+echo "    Build log: $BUILD_LOG"
+echo ""
 
 # Function to stop tail
 stop_tail() {
@@ -77,6 +110,9 @@ tail -f "$BUILD_LOG" 2>/dev/null &
 TAIL_PID=$!
 
 # Run the build
+echo "    Starting build..."
+echo ""
+
 ./nix-macos.sh \
     -p xcode26 \
     -x \
@@ -88,24 +124,36 @@ BUILD_EXIT=$?
 
 # Stop tailing
 stop_tail
+trap - EXIT
 
-# Print output location
+# ============================================
+# Step 6: Verify output
+# ============================================
+echo ""
+echo "==> [Step 6/7] Verifying build output..."
+
 PRODUCT_PATH="$SCRIPT_DIR/$FFMPEG_KIT_DIR/prebuilt/bundle-apple-xcframework-macos-10.15"
 if [ -d "$PRODUCT_PATH" ]; then
+    echo "    ✅ Product path: $PRODUCT_PATH"
     echo ""
-    echo "==> Build completed successfully!"
-    echo "==> Product path: $PRODUCT_PATH"
-    echo ""
-    echo "==> Generated xcrameworks:"
+    echo "    Generated xcrameworks:"
     ls -1 "$PRODUCT_PATH"
-    echo ""
-    echo "==> Copying to Packages/FFmpegKit/..."
-    cp -r "$PRODUCT_PATH"/*.xcframework "$SCRIPT_DIR/Packages/FFmpegKit/"
-    echo ""
-    echo "==> License: LGPL 3.0"
 else
-    echo ""
-    echo "==> Build failed. Check build.log for details."
-    echo "==> Log: $BUILD_LOG"
+    echo "    ❌ Build output not found at: $PRODUCT_PATH"
+    echo "    Check build.log: $BUILD_LOG"
     exit 1
 fi
+echo ""
+
+# ============================================
+# Step 7: Copy to Packages
+# ============================================
+echo "==> [Step 7/7] Copying xcframeworks to Packages/FFmpegKit/..."
+cp -r "$PRODUCT_PATH"/*.xcframework "$SCRIPT_DIR/Packages/FFmpegKit/"
+echo "    ✅ Done"
+echo ""
+
+echo "=========================================="
+echo "✅ FFmpegKit build completed!"
+echo "   License: LGPL 3.0"
+echo "=========================================="

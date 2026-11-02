@@ -72,70 +72,174 @@ jobs:
 
     - name: Import signing certificate
       run: |
-        echo "==> Decoding certificate from base64..."
+        echo "============================================"
+        echo "STEP 1: Decode certificate"
+        echo "============================================"
         echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
-        echo "==> Certificate decoded, size: $(stat -f%z /tmp/cert.p12) bytes"
+        echo "Certificate decoded, size: $(stat -f%z /tmp/cert.p12) bytes"
 
-        echo "==> Creating keychain..."
+        echo ""
+        echo "============================================"
+        echo "STEP 2: Create keychain"
+        echo "============================================"
+        echo "Creating build.keychain..."
         security create-keychain -p "" build.keychain
+        echo "Keychain file location:"
+        ls -la ~/Library/Keychains/ | grep build
+        echo ""
+        echo "Setting default keychain to build.keychain..."
         security default-keychain -s build.keychain
+        echo "Default keychain now: $(security default-keychain)"
+        echo ""
+        echo "Unlocking build.keychain..."
         security unlock-keychain -p "" build.keychain
+        echo ""
+        echo "Setting keychain search list..."
         security list-keychains -s build.keychain
-        echo "==> Keychain created and configured"
+        echo "Keychain search list now:"
+        security list-keychains
 
-        echo "==> Importing certificate..."
+        echo ""
+        echo "============================================"
+        echo "STEP 3: Import certificate into keychain"
+        echo "============================================"
+        echo "Importing to: $(security default-keychain)"
         security import /tmp/cert.p12 -k build.keychain \
           -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
-          -T /usr/bin/codesign
-        echo "==> Certificate imported"
+          -T /usr/bin/codesign -v
+        echo ""
+        echo "Checking what's in build.keychain after import..."
+        echo "All certificates in build.keychain:"
+        security find-certificate -a build.keychain 2>&1 | grep -E "labl|snbr|\"keyid\"" | head -20
+        echo ""
+        echo "All identities (codesigning) in build.keychain:"
+        security find-identity -v -p codesigning build.keychain
 
-        echo "==> Setting key partition list..."
+        echo ""
+        echo "============================================"
+        echo "STEP 4: Set key partition list"
+        echo "============================================"
         security set-key-partition-list -S apple-tool:,apple:,codesign: \
           -s -k "" build.keychain
-        echo "==> Key partition list set"
 
-        echo "==> Adding certificate to trusted root..."
+        echo ""
+        echo "============================================"
+        echo "STEP 5: Add to trusted root"
+        echo "============================================"
         security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
         sudo security add-trusted-cert -d -r trustRoot \
           -k /Library/Keychains/System.keychain /tmp/cert.pem
-        echo "==> Certificate added to trusted root"
-
         rm /tmp/cert.p12 /tmp/cert.pem
 
-        echo "==> Verifying certificate..."
+        echo ""
+        echo "============================================"
+        echo "STEP 6: Final verification"
+        echo "============================================"
+        echo "Searching for 'Local Development Signing' in build.keychain..."
+        if security find-certificate -c "Local Development Signing" build.keychain >/dev/null 2>&1; then
+          echo "✅ Certificate 'Local Development Signing' found in build.keychain"
+          echo ""
+          echo "Certificate details:"
+          security find-certificate -c "Local Development Signing" build.keychain
+        else
+          echo "❌ Certificate NOT found"
+        fi
+        echo ""
+        echo "All codesigning identities in build.keychain:"
         security find-identity -v -p codesigning build.keychain
-        echo "✅ Certificate import complete"
 
     - name: Unlock keychain before signing
       run: |
-        echo "==> Ensuring keychain is unlocked..."
-        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
-        security default-keychain -s build.keychain && echo "✅ Default keychain set"
-        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
+        echo "============================================"
+        echo "UNLOCK KEYCHAIN - Checking state"
+        echo "============================================"
         echo ""
-        echo "==> Verifying keychain state:"
+        echo "1. Current keychain list:"
+        security list-keychains
+        echo ""
+        echo "2. Default keychain:"
+        security default-keychain
+        echo ""
+        echo "3. Unlocking build.keychain..."
+        security unlock-keychain -p "" build.keychain && echo "✅ Unlocked"
+        echo ""
+        echo "4. Setting default keychain..."
+        security default-keychain -s build.keychain && echo "✅ Default set"
+        echo ""
+        echo "5. Setting keychain list..."
+        security list-keychains -s build.keychain && echo "✅ List set"
+        echo ""
+        echo "6. Keychain state after unlock:"
         security show-keychain-info build.keychain
         echo ""
-        echo "==> Available identities:"
-        security find-identity -v -p codesigning build.keychain
+        echo "7. Searching for certificate in build.keychain..."
+        echo "Looking for 'Local Development Signing'..."
+        if security find-certificate -c "Local Development Signing" build.keychain >/dev/null 2>&1; then
+          echo "✅ Found in build.keychain"
+          security find-identity -v -p codesigning build.keychain
+        else
+          echo "❌ NOT found in build.keychain"
+        fi
+        echo ""
+        echo "8. Searching in default keychain..."
+        if security find-certificate -c "Local Development Signing" >/dev/null 2>&1; then
+          echo "✅ Found in default keychain"
+          security find-identity -v -p codesigning
+        else
+          echo "❌ NOT found in default keychain"
+        fi
+        echo ""
+        echo "9. Searching in each keychain in the list..."
+        for kc in $(security list-keychains | tr -d '"'); do
+          echo ""
+          echo "Checking: $kc"
+          if security find-certificate -c "Local Development Signing" "$kc" >/dev/null 2>&1; then
+            echo "✅ Found in $kc"
+          else
+            echo "❌ Not in $kc"
+          fi
+        done
 
     - name: Sign app
       run: |
-        echo "==> Diagnosing signing environment..."
-        echo "==> Keychain list:"
+        echo "============================================"
+        echo "SIGN APP - Searching for certificate"
+        echo "============================================"
+        echo ""
+        echo "1. Current keychain list:"
         security list-keychains
         echo ""
-        echo "==> Default keychain:"
+        echo "2. Default keychain:"
         security default-keychain
         echo ""
-        echo "==> Available identities (no keychain specified):"
+        echo "3. Searching for codesigning identities..."
+        echo ""
+        echo "   3a. Search WITHOUT specifying keychain (what codesign would see):"
         security find-identity -v -p codesigning
         echo ""
-        echo "==> Available identities (build.keychain):"
+        echo "   3b. Search in build.keychain explicitly:"
         security find-identity -v -p codesigning build.keychain
         echo ""
-
-        echo "==> Starting signing process..."
+        echo "   3c. Search in default keychain:"
+        DEFAULT_KC=$(security default-keychain | tr -d '"')
+        security find-identity -v -p codesigning "$DEFAULT_KC"
+        echo ""
+        echo "   3d. Search in each keychain in the list:"
+        for kc in $(security list-keychains | tr -d '"'); do
+          echo ""
+          echo "   Checking: $kc"
+          RESULT=$(security find-identity -v -p codesigning "$kc" 2>&1)
+          if echo "$RESULT" | grep -q "Local Development Signing"; then
+            echo "   ✅ Found 'Local Development Signing' in $kc"
+          else
+            echo "   ❌ Not found in $kc"
+          fi
+          echo "   Identities: $(echo "$RESULT" | grep -c 'valid identities')"
+        done
+        echo ""
+        echo "============================================"
+        echo "Starting signing process..."
+        echo "============================================"
         for i in 1 2 3 4; do
           echo ""
           echo "==> Attempt $i of 4"

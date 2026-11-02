@@ -168,7 +168,7 @@ echo ""
 # Step 7: Copy to Packages
 # ============================================
 echo "==> [Step 7/7] Copying xcframeworks to Packages/FFmpegKit/..."
-cp -r "$PRODUCT_PATH"/*.xcframework "$SCRIPT_DIR/Packages/FFmpegKit/"
+cp -a "$PRODUCT_PATH"/*.xcframework "$SCRIPT_DIR/Packages/FFmpegKit/"
 echo "    ✅ Done"
 echo ""
 

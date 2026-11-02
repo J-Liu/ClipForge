@@ -219,7 +219,7 @@ extension MainViewController {
         CompositionBuilder.export(
             clips: playerController.clips,
             segments: segments,
-            cropRect: originalCropRectForExport(),
+            cropRect: cropRectForExport(),
             rotation: playerView.rotationDegrees,
             resolution: resolution,
             frameRate: frameRate,

@@ -52,9 +52,10 @@ class MainViewController: NSViewController {
 
     let cropOverlay = CropOverlayView()
     var videoNaturalSize: CGSize = .zero
-    /// Crop rect in original video coordinates (independent of rotation).
-    /// When displaying, this is converted to effective coordinates based on current rotation.
-    var originalCropRect: NSRect?
+    /// 4 points defining the crop region in ORIGINAL video coordinates.
+    /// Order: topLeft, topRight, bottomRight, bottomLeft (clockwise from top-left).
+    /// These points transform along with the video.
+    var cropPoints: [CGPoint]?
     private var timeControlStatusObservation: NSKeyValueObservation?
 
     let recorder = RecorderController()

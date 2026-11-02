@@ -110,6 +110,8 @@ extension MainViewController {
                         let asset = AVURLAsset(url: firstURL)
                         if let track = try? await asset.loadTracks(withMediaType: .video).first {
                             let size = try? await track.load(.naturalSize)
+                            let transform = try? await track.load(.preferredTransform)
+                            Log("Video track: naturalSize=\(size ?? .zero), preferredTransform=\(transform ?? .identity)")
                             await MainActor.run {
                                 self.videoNaturalSize = size ?? .zero
                                 self.updateOverlayContentRect()

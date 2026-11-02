@@ -10,21 +10,27 @@ extension MainViewController {
         let displayRect = playerView.videoDisplayRect(for: videoNaturalSize)
         cropOverlay.contentRect = displayRect
 
-        // If there's an existing original crop, convert it to screen coordinates for display
-        if let originalCrop = originalCropRect {
+        // If there's an existing crop, transform points and display
+        if let points = cropPoints {
             let effectiveSize = playerView.effectiveVideoSize(for: videoNaturalSize)
             let scaleX = displayRect.width / effectiveSize.width
             let scaleY = displayRect.height / effectiveSize.height
 
-            // Convert original crop to effective coordinates based on current rotation
-            let effectiveCrop = originalToEffectiveCrop(originalCrop)
+            // Transform the 4 points from original to effective coordinates
+            let transformedPoints = transformCropPoints(points, rotation: playerView.rotationDegrees)
 
-            let screenX = displayRect.minX + effectiveCrop.minX * scaleX
-            let screenY = displayRect.minY + effectiveCrop.minY * scaleY
-            let screenW = effectiveCrop.width * scaleX
-            let screenH = effectiveCrop.height * scaleY
+            // Convert to screen coordinates and get bounding rect
+            let screenPoints = transformedPoints.map { point in
+                CGPoint(
+                    x: displayRect.minX + point.x * scaleX,
+                    y: displayRect.minY + point.y * scaleY
+                )
+            }
 
-            cropOverlay.setSelectionRect(NSRect(x: screenX, y: screenY, width: screenW, height: screenH))
+            // Get bounding rect from 4 points
+            let boundingRect = boundingRect(from: screenPoints)
+
+            cropOverlay.setSelectionRect(boundingRect, silent: true)
         } else {
             cropOverlay.resetSelection()
         }
@@ -35,102 +41,154 @@ extension MainViewController {
         let displayRect = cropOverlay.contentRect
         guard displayRect.width > 0, displayRect.height > 0 else { return }
 
-        // Get effective (rotated) video size that matches the display
         let effectiveSize = playerView.effectiveVideoSize(for: videoNaturalSize)
-
-        // Scale from screen coordinates to effective video coordinates
         let scaleX = effectiveSize.width / displayRect.width
         let scaleY = effectiveSize.height / displayRect.height
 
+        // Convert screen rect to effective video coordinates
         let effectiveX = (selectionRect.minX - displayRect.minX) * scaleX
         let effectiveY = (selectionRect.minY - displayRect.minY) * scaleY
         let effectiveW = selectionRect.width * scaleX
         let effectiveH = selectionRect.height * scaleY
 
-        let effectiveRect = NSRect(x: effectiveX, y: effectiveY, width: effectiveW, height: effectiveH)
+        // 4 corners in effective coordinates (clockwise from top-left)
+        let effectivePoints: [CGPoint] = [
+            CGPoint(x: effectiveX, y: effectiveY),                           // top-left
+            CGPoint(x: effectiveX + effectiveW, y: effectiveY),               // top-right
+            CGPoint(x: effectiveX + effectiveW, y: effectiveY + effectiveH), // bottom-right
+            CGPoint(x: effectiveX, y: effectiveY + effectiveH)                // bottom-left
+        ]
 
-        // Convert effective to original coordinates and store
-        originalCropRect = effectiveToOriginalCrop(effectiveRect)
-        Log("updateCropRect: originalCropRect=\(originalCropRect!)")
+        // Transform back to original coordinates
+        let originalPoints = inverseTransformCropPoints(effectivePoints, rotation: playerView.rotationDegrees)
+        cropPoints = originalPoints
     }
 
-    /// Convert effective (screen-visible) coordinates to original video coordinates
-    private func effectiveToOriginalCrop(_ effective: NSRect) -> NSRect {
-        let absRotation = abs(Int(playerView.rotationDegrees) % 360)
-        let effectiveSize = playerView.effectiveVideoSize(for: videoNaturalSize)
+    /// Transform 4 crop points from original to effective coordinates based on rotation.
+    private func transformCropPoints(_ points: [CGPoint], rotation: CGFloat) -> [CGPoint] {
+        let normalized = normalizedRotation(rotation)
+        let origW = videoNaturalSize.width
+        let origH = videoNaturalSize.height
 
-        let cropX: CGFloat, cropY: CGFloat, cropW: CGFloat, cropH: CGFloat
+        // Rotation matrix transformation:
+        // For counter-clockwise rotation by angle θ:
+        //   x' = x*cos(θ) - y*sin(θ)
+        //   y' = x*sin(θ) + y*cos(θ)
+        // But we're rotating the COORDINATE SYSTEM, not the points,
+        // so we apply the inverse rotation to the points.
 
-        if absRotation == 90 {
-            // 90° clockwise: effective X -> original Y, effective Y -> original (width - X - W)
-            cropX = effectiveSize.height - effective.minY - effective.height
-            cropY = effective.minX
-            cropW = effective.height
-            cropH = effective.width
-        } else if absRotation == 270 {
-            // 270° clockwise (90° counter-clockwise)
-            cropX = effective.minY
-            cropY = effectiveSize.width - effective.minX - effective.width
-            cropW = effective.height
-            cropH = effective.width
-        } else if absRotation == 180 {
-            // 180°: everything is inverted
-            cropX = effectiveSize.width - effective.minX - effective.width
-            cropY = effectiveSize.height - effective.minY - effective.height
-            cropW = effective.width
-            cropH = effective.height
-        } else {
-            // No rotation
-            cropX = effective.minX
-            cropY = effective.minY
-            cropW = effective.width
-            cropH = effective.height
+        return points.map { point in
+            transformPoint(point, rotation: normalized, origW: origW, origH: origH)
         }
-
-        // Ensure even dimensions for video encoding
-        let evenW = floor(cropW / 2) * 2
-        let evenH = floor(cropH / 2) * 2
-
-        return NSRect(x: cropX, y: cropY, width: evenW, height: evenH)
     }
 
-    /// Convert original video coordinates to effective (screen-visible) coordinates
-    private func originalToEffectiveCrop(_ original: NSRect) -> NSRect {
-        let absRotation = abs(Int(playerView.rotationDegrees) % 360)
+    /// Transform a single point from original to effective coordinates.
+    /// Uses center-based coordinate system for simpler rotation math.
+    private func transformPoint(_ point: CGPoint, rotation: Int, origW: CGFloat, origH: CGFloat) -> CGPoint {
+        guard rotation != 0 else { return point }
 
-        let effectiveX: CGFloat, effectiveY: CGFloat, effectiveW: CGFloat, effectiveH: CGFloat
+        // Convert to center-based coordinates (origin at center, Y up)
+        let centerX = origW / 2
+        let centerY = origH / 2
+        let x = point.x - centerX
+        let y = centerY - point.y  // Flip Y for standard math coordinates
 
-        if absRotation == 90 {
-            // 90° clockwise: original Y -> effective X, original X -> effective (height - Y - H)
-            effectiveX = original.minY
-            effectiveY = videoNaturalSize.width - original.minX - original.width
-            effectiveW = original.height
-            effectiveH = original.width
-        } else if absRotation == 270 {
-            // 270° clockwise (90° counter-clockwise)
-            effectiveX = videoNaturalSize.height - original.minY - original.height
-            effectiveY = original.minX
-            effectiveW = original.height
-            effectiveH = original.width
-        } else if absRotation == 180 {
-            // 180°: everything is inverted
-            effectiveX = videoNaturalSize.width - original.minX - original.width
-            effectiveY = videoNaturalSize.height - original.minY - original.height
-            effectiveW = original.width
-            effectiveH = original.height
-        } else {
-            // No rotation
-            effectiveX = original.minX
-            effectiveY = original.minY
-            effectiveW = original.width
-            effectiveH = original.height
+        // Video rotates counter-clockwise by `rotation` degrees.
+        // In center-based coordinates, we rotate the point in the OPPOSITE direction.
+        // So we use NEGATIVE rotation angle.
+        let rotationRadians = -Double(rotation) * .pi / 180
+        let cosR = cos(rotationRadians)
+        let sinR = sin(rotationRadians)
+        let newX = x * cosR - y * sinR
+        let newY = x * sinR + y * cosR
+
+        // Convert back to video coordinates (origin at top-left, Y down)
+        // Effective dimensions swap for 90°/270° rotations
+        let effectiveW = (rotation == 90 || rotation == 270) ? origH : origW
+        let effectiveH = (rotation == 90 || rotation == 270) ? origW : origH
+        let newCenterX = effectiveW / 2
+        let newCenterY = effectiveH / 2
+
+        let effectiveX = newCenterX + newX
+        let effectiveY = newCenterY - newY
+
+        return CGPoint(x: effectiveX, y: effectiveY)
+    }
+
+    /// Transform 4 crop points from effective back to original coordinates.
+    private func inverseTransformCropPoints(_ points: [CGPoint], rotation: CGFloat) -> [CGPoint] {
+        let normalized = normalizedRotation(rotation)
+        let origW = videoNaturalSize.width
+        let origH = videoNaturalSize.height
+
+        return points.map { point in
+            inverseTransformPoint(point, rotation: normalized, origW: origW, origH: origH)
         }
-
-        return NSRect(x: effectiveX, y: effectiveY, width: effectiveW, height: effectiveH)
     }
 
-    /// Get the crop rect for export (already in original coordinates)
-    func originalCropRectForExport() -> NSRect? {
-        return originalCropRect
+    /// Inverse transform a point from effective to original coordinates.
+    /// Uses center-based coordinate system - apply the original rotation (not negated).
+    private func inverseTransformPoint(_ point: CGPoint, rotation: Int, origW: CGFloat, origH: CGFloat) -> CGPoint {
+        guard rotation != 0 else { return point }
+
+        // Effective dimensions (swapped for 90°/270°)
+        let effectiveW = (rotation == 90 || rotation == 270) ? origH : origW
+        let effectiveH = (rotation == 90 || rotation == 270) ? origW : origH
+
+        // Convert to center-based coordinates
+        let centerX = effectiveW / 2
+        let centerY = effectiveH / 2
+        let x = point.x - centerX
+        let y = centerY - point.y
+
+        // Forward transform uses -rotation, so inverse uses +rotation
+        let rotationRadians = Double(rotation) * .pi / 180
+        let cosR = cos(rotationRadians)
+        let sinR = sin(rotationRadians)
+        let newX = x * cosR - y * sinR
+        let newY = x * sinR + y * cosR
+
+        // Convert back to original video coordinates
+        let origCenterX = origW / 2
+        let origCenterY = origH / 2
+        let origX = origCenterX + newX
+        let origY = origCenterY - newY
+
+        return CGPoint(x: origX, y: origY)
+    }
+
+    /// Normalize rotation to 0-359 range.
+    private func normalizedRotation(_ rotation: CGFloat) -> Int {
+        var r = Int(rotation) % 360
+        if r < 0 { r += 360 }
+        return r
+    }
+
+    /// Get bounding rect from 4 points.
+    private func boundingRect(from points: [CGPoint]) -> NSRect {
+        guard points.count == 4 else { return .zero }
+
+        let minX = points.map { $0.x }.min() ?? 0
+        let maxX = points.map { $0.x }.max() ?? 0
+        let minY = points.map { $0.y }.min() ?? 0
+        let maxY = points.map { $0.y }.max() ?? 0
+
+        return NSRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+    }
+
+    /// Get the crop rect in original video coordinates for export.
+    func cropRectForExport() -> NSRect? {
+        guard let points = cropPoints else { return nil }
+
+        // The stored points are already in original coordinates
+        let rect = boundingRect(from: points)
+
+        // Ensure even dimensions
+        let evenW = floor(rect.width / 2) * 2
+        let evenH = floor(rect.height / 2) * 2
+
+        let result = NSRect(x: rect.minX, y: rect.minY, width: evenW, height: evenH)
+        Log("cropRectForExport: points=\(points), rect=\(result), rotation=\(playerView.rotationDegrees)")
+        return result
     }
 }

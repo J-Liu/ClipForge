@@ -370,6 +370,8 @@ class CompositionBuilder {
         let hasTargetFPS = targetFPS != nil
         let hasRotation = rotation != 0
 
+        Log("makeVideoComposition: cropRect=\(cropRect ?? .zero), rotation=\(rotation), hasCrop=\(effectiveHasCrop), hasRotation=\(hasRotation)")
+
         // Rotation is handled via preferredTransform for passthrough export.
         // Only create videoComposition if there's actual crop, target size, or target FPS.
         // If ONLY rotation, return nil to allow passthrough (rotation via preferredTransform).
@@ -383,23 +385,96 @@ class CompositionBuilder {
         // The source region we actually use (crop or full).
         let sourceSize = effectiveHasCrop ? cropRect!.size : fullSize
 
-        // Build the transform: first translate the crop region to (0,0),
-        // then scale to fit the target size, then center, then apply rotation.
-        var transform = CGAffineTransform.identity
-
-        if effectiveHasCrop, let cropRect = cropRect {
-            // Crop rect is in top-left origin coordinates; CG transform is bottom-left.
-            let translateY = -(fullSize.height - cropRect.origin.y - cropRect.height)
-            transform = CGAffineTransform(translationX: -cropRect.origin.x, y: translateY)
+        // Determine render sizes
+        let baseRenderSize: CGSize
+        if let targetSize = targetSize {
+            baseRenderSize = targetSize
+        } else {
+            baseRenderSize = sourceSize
         }
 
-        // Determine render size - account for rotation which may swap dimensions
-        var effectiveSourceSize = sourceSize
+        // Final render size accounting for rotation (swapped dimensions for 90°/270°)
+        var finalRenderSize = baseRenderSize
         if hasRotation {
-            // For 90° or 270° rotation, dimensions swap
-            let absRotation = abs(rotation)
+            let absRotation = abs(Int(rotation) % 360)
             if absRotation == 90 || absRotation == 270 {
-                effectiveSourceSize = CGSize(width: sourceSize.height, height: sourceSize.width)
+                finalRenderSize = CGSize(width: baseRenderSize.height, height: baseRenderSize.width)
+            }
+        }
+
+        Log("makeVideoComposition: sourceSize=\(sourceSize), baseRenderSize=\(baseRenderSize), finalRenderSize=\(finalRenderSize), hasRotation=\(hasRotation)")
+
+        // Build the transform
+        // When there's rotation AND crop, we need to:
+        // 1. Rotate the source frame first
+        // 2. Then crop in the rotated coordinate system
+        var transform = CGAffineTransform.identity
+
+        if hasRotation {
+            // First apply rotation around the center of the FULL source frame
+            let rotationRadians = rotation * .pi / 180
+            let centerX = fullSize.width / 2
+            let centerY = fullSize.height / 2
+
+            let fromCenter = CGAffineTransform(translationX: -centerX, y: -centerY)
+            let rotate = CGAffineTransform(rotationAngle: rotationRadians)
+            let toCenter = CGAffineTransform(translationX: centerX, y: centerY)
+
+            transform = transform.concatenating(fromCenter).concatenating(rotate).concatenating(toCenter)
+            Log("makeVideoComposition: applying rotation=\(rotation)° around center (\(centerX), \(centerY))")
+        }
+
+        if effectiveHasCrop, let cropRect = cropRect {
+            // Crop is in original coordinates. After rotation, we need to transform the crop position.
+
+            if hasRotation {
+                // When there's rotation, transform crop coordinates to the rotated system
+                let absRotation = abs(Int(rotation) % 360)
+
+                // Calculate where the crop region ends up after rotation
+                let cropCenterX = cropRect.origin.x + cropRect.width / 2
+                let cropCenterY = cropRect.origin.y + cropRect.height / 2
+
+                // Center of original frame
+                let frameCenterX = fullSize.width / 2
+                let frameCenterY = fullSize.height / 2
+
+                // Rotate crop center around frame center
+                let dx = cropCenterX - frameCenterX
+                let dy = frameCenterY - cropCenterY  // Flip Y for bottom-left origin
+
+                var newCenterX: CGFloat, newCenterY: CGFloat
+                if absRotation == 90 || absRotation == 270 {
+                    // After 90° rotation, (dx, dy) → (dy, -dx) or similar
+                    if rotation > 0 {  // Counter-clockwise
+                        newCenterX = frameCenterX + dy
+                        newCenterY = frameCenterY + dx
+                    } else {  // Clockwise
+                        newCenterX = frameCenterX - dy
+                        newCenterY = frameCenterY - dx
+                    }
+                } else {
+                    // 180° rotation
+                    newCenterX = frameCenterX - dx
+                    newCenterY = frameCenterY - dy
+                }
+
+                // Translate so the rotated crop center is at the render center
+                let renderCenterX = finalRenderSize.width / 2
+                let renderCenterY = finalRenderSize.height / 2
+
+                let translateX = renderCenterX - newCenterX
+                let translateY = renderCenterY - newCenterY
+
+                let cropTranslate = CGAffineTransform(translationX: translateX, y: translateY)
+                transform = transform.concatenating(cropTranslate)
+                Log("makeVideoComposition: applying crop translation after rotation: x=\(translateX), y=\(translateY)")
+            } else {
+                // No rotation: simple crop translation
+                let translateY = -(fullSize.height - cropRect.origin.y - cropRect.height)
+                let cropTranslate = CGAffineTransform(translationX: -cropRect.origin.x, y: translateY)
+                transform = transform.concatenating(cropTranslate)
+                Log("makeVideoComposition: applying crop translation: x=\(-cropRect.origin.x), y=\(translateY)")
             }
         }
 
@@ -407,20 +482,20 @@ class CompositionBuilder {
 
         if let targetSize = targetSize {
             // Compute the scale to fit source into target, keeping aspect ratio.
-            let srcAspect = effectiveSourceSize.width / effectiveSourceSize.height
+            let srcAspect = finalRenderSize.width / finalRenderSize.height
             let dstAspect = targetSize.width / targetSize.height
 
             let scale: CGFloat
             if srcAspect > dstAspect {
                 // Source is wider — fit by width.
-                scale = targetSize.width / effectiveSourceSize.width
+                scale = targetSize.width / finalRenderSize.width
             } else {
                 // Source is taller — fit by height.
-                scale = targetSize.height / effectiveSourceSize.height
+                scale = targetSize.height / finalRenderSize.height
             }
 
-            let scaledWidth = effectiveSourceSize.width * scale
-            let scaledHeight = effectiveSourceSize.height * scale
+            let scaledWidth = finalRenderSize.width * scale
+            let scaledHeight = finalRenderSize.height * scale
             let offsetX = (targetSize.width - scaledWidth) / 2
             let offsetY = (targetSize.height - scaledHeight) / 2
 
@@ -430,24 +505,10 @@ class CompositionBuilder {
             transform = transform.concatenating(scaleTransform).concatenating(centerTransform)
 
             videoComposition.renderSize = targetSize
+            Log("makeVideoComposition: targetSize=\(targetSize), scale=\(scale), renderSize=\(targetSize)")
         } else {
-            videoComposition.renderSize = effectiveSourceSize
-        }
-
-        // Apply rotation around the center of the render size
-        if hasRotation {
-            let renderSize = videoComposition.renderSize
-            let rotationRadians = rotation * .pi / 180
-
-            // Rotate around center: translate origin to center, rotate, translate back
-            let centerX = renderSize.width / 2
-            let centerY = renderSize.height / 2
-
-            let fromCenter = CGAffineTransform(translationX: -centerX, y: -centerY)
-            let rotate = CGAffineTransform(rotationAngle: rotationRadians)
-            let toCenter = CGAffineTransform(translationX: centerX, y: centerY)
-
-            transform = transform.concatenating(fromCenter).concatenating(rotate).concatenating(toCenter)
+            videoComposition.renderSize = finalRenderSize
+            Log("makeVideoComposition: no targetSize, renderSize=\(finalRenderSize)")
         }
 
         instruction.setTransform(transform, at: .zero)

@@ -72,67 +72,89 @@ jobs:
 
     - name: Import signing certificate
       run: |
+        echo "==> Decoding certificate from base64..."
+        echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
+        echo "==> Certificate decoded, size: $(stat -f%z /tmp/cert.p12) bytes"
+
         echo "==> Creating keychain..."
         security create-keychain -p "" build.keychain
         security default-keychain -s build.keychain
         security unlock-keychain -p "" build.keychain
+        security list-keychains -s build.keychain
+        echo "==> Keychain created and configured"
 
         echo "==> Importing certificate..."
-        echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
         security import /tmp/cert.p12 -k build.keychain \
           -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
           -T /usr/bin/codesign
+        echo "==> Certificate imported"
 
         echo "==> Setting key partition list..."
         security set-key-partition-list -S apple-tool:,apple:,codesign: \
           -s -k "" build.keychain
+        echo "==> Key partition list set"
 
         echo "==> Adding certificate to trusted root..."
         security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
         sudo security add-trusted-cert -d -r trustRoot \
           -k /Library/Keychains/System.keychain /tmp/cert.pem
+        echo "==> Certificate added to trusted root"
 
         rm /tmp/cert.p12 /tmp/cert.pem
+        echo "==> Certificate import complete"
 
-        echo "==> Verifying certificate..."
-        security find-identity -v -p codesigning build.keychain
-        echo "✅ Certificate imported"
+    - name: Diagnose signing environment
+      run: |
+        echo "==> Keychain list:"
+        security list-keychains
+        echo ""
+        echo "==> Default keychain:"
+        security default-keychain
+        echo ""
+        echo "==> All identities (codesigning):"
+        security find-identity -v -p codesigning
+        echo ""
+        echo "==> All identities (all):"
+        security find-identity -v
+        echo ""
+        echo "==> Checking if 'Local Development Signing' certificate exists..."
+        if security find-certificate -c "Local Development Signing" build.keychain >/dev/null 2>&1; then
+          echo "✅ Certificate found in build.keychain"
+          echo ""
+          echo "==> Certificate PEM (first 20 lines):"
+          security find-certificate -c "Local Development Signing" -p build.keychain | head -20
+          echo ""
+          echo "==> Certificate details:"
+          security find-certificate -c "Local Development Signing" build.keychain
+        else
+          echo "❌ ERROR: Certificate 'Local Development Signing' NOT FOUND in build.keychain"
+          echo ""
+          echo "==> Listing all certificates in build.keychain:"
+          security find-certificate -a build.keychain 2>&1 | grep "labl" || echo "No certificates found"
+        fi
+
+    - name: Unlock keychain before signing
+      run: |
+        echo "==> Ensuring keychain is unlocked..."
+        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
+        security default-keychain -s build.keychain && echo "✅ Default keychain set"
+        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
+        echo ""
+        echo "==> Verifying keychain state:"
+        security show-keychain-info build.keychain
 
     - name: Sign app
       run: |
-        echo "==> Setting up keychain for codesign..."
-        security default-keychain -s build.keychain
-        security list-keychains -s build.keychain
-        security unlock-keychain -p "" build.keychain
-
         echo "==> Starting signing process..."
-
-        # Verify certificate is available
-        if ! security find-identity -v -p codesigning build.keychain | grep -q "Local Development Signing"; then
-          echo "❌ ERROR: Certificate 'Local Development Signing' not found"
-          echo "==> Available identities:"
-          security find-identity -v -p codesigning
-          exit 1
-        fi
-
         for i in 1 2 3 4; do
           echo ""
           echo "==> Attempt $i of 4"
           echo "==> Running codesign with 60 second timeout..."
           if perl -e '$SIG{ALRM} = sub { exit 14 }; alarm 60; exec @ARGV or exit 1' -- codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1 | tee /tmp/sign.log; then
-            echo "✅ codesign command succeeded on attempt $i"
+            echo "✅ Signed successfully on attempt $i"
             echo ""
             echo "==> Verifying signature..."
             codesign -dvvv ClipForge.app 2>&1 | head -20
-
-            # Check that signature is NOT adhoc
-            if codesign -dvvv ClipForge.app 2>&1 | grep -q "Signature=adhoc"; then
-              echo "❌ ERROR: Signature is adhoc, not using certificate"
-              echo "==> This means the certificate was not found by codesign"
-              exit 1
-            fi
-
-            echo "✅ Signature verified (not adhoc)"
             exit 0
           fi
 

@@ -106,6 +106,19 @@ jobs:
         security find-identity -v -p codesigning build.keychain
         echo "✅ Certificate import complete"
 
+    - name: Unlock keychain before signing
+      run: |
+        echo "==> Ensuring keychain is unlocked..."
+        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
+        security default-keychain -s build.keychain && echo "✅ Default keychain set"
+        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
+        echo ""
+        echo "==> Verifying keychain state:"
+        security show-keychain-info build.keychain
+        echo ""
+        echo "==> Available identities:"
+        security find-identity -v -p codesigning build.keychain
+
     - name: Sign app
       run: |
         echo "==> Starting signing process..."

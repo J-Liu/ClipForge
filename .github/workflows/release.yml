@@ -121,6 +121,20 @@ jobs:
 
     - name: Sign app
       run: |
+        echo "==> Diagnosing signing environment..."
+        echo "==> Keychain list:"
+        security list-keychains
+        echo ""
+        echo "==> Default keychain:"
+        security default-keychain
+        echo ""
+        echo "==> Available identities (no keychain specified):"
+        security find-identity -v -p codesigning
+        echo ""
+        echo "==> Available identities (build.keychain):"
+        security find-identity -v -p codesigning build.keychain
+        echo ""
+
         echo "==> Starting signing process..."
         for i in 1 2 3 4; do
           echo ""

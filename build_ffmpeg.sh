@@ -26,6 +26,8 @@ if ! command -v nix &> /dev/null; then
     exit 1
 fi
 
+echo "==> Nix found: $(nix --version)"
+
 # Create cache directory
 mkdir -p "$CACHE_DIR"
 
@@ -34,28 +36,47 @@ TARBALL_PATH="$CACHE_DIR/ffmpeg-kit-next-${VERSION}.tar.gz"
 
 if [ ! -d "$FFMPEG_KIT_DIR" ]; then
     if [ ! -f "$TARBALL_PATH" ]; then
-        echo "Downloading ffmpeg-kit-next v${VERSION} tarball..."
+        echo "==> Downloading ffmpeg-kit-next v${VERSION} tarball..."
         curl -L -o "$TARBALL_PATH" "$TARBALL_URL"
     else
-        echo "✓ Using cached tarball"
+        echo "==> Using cached tarball"
     fi
 
-    echo "Extracting..."
+    echo "==> Extracting..."
     tar -xzf "$TARBALL_PATH" -C "$CACHE_DIR"
     mv "$CACHE_DIR/ffmpeg-kit-next-${VERSION}" "$FFMPEG_KIT_DIR"
 else
-    echo "✓ $FFMPEG_KIT_DIR directory exists, skipping download"
+    echo "==> $FFMPEG_KIT_DIR directory exists, skipping download"
 fi
 
 cd "$FFMPEG_KIT_DIR"
 
 # Build macOS xcframework
 echo ""
-echo "Building FFmpeg for macOS..."
-echo "Version: ${VERSION}"
-echo "Features: VideoToolbox, AudioToolbox, AVFoundation"
+echo "==> Building FFmpeg for macOS..."
+echo "==> Version: ${VERSION}"
+echo "==> Features: VideoToolbox, AudioToolbox, AVFoundation"
 echo ""
 
+# Start tailing build.log in background to show progress
+BUILD_LOG="$SCRIPT_DIR/$FFMPEG_KIT_DIR/build.log"
+touch "$BUILD_LOG"
+
+# Function to stop tail
+stop_tail() {
+    if [ -n "$TAIL_PID" ]; then
+        kill $TAIL_PID 2>/dev/null || true
+    fi
+}
+
+# Trap to ensure tail is stopped on exit
+trap stop_tail EXIT
+
+# Tail build.log in background, showing progress
+tail -f "$BUILD_LOG" 2>/dev/null &
+TAIL_PID=$!
+
+# Run the build
 ./nix-macos.sh \
     -p xcode26 \
     -x \
@@ -63,20 +84,28 @@ echo ""
     --enable-lib-macos-audiotoolbox \
     --enable-lib-macos-avfoundation
 
+BUILD_EXIT=$?
+
+# Stop tailing
+stop_tail
+
 # Print output location
 PRODUCT_PATH="$SCRIPT_DIR/$FFMPEG_KIT_DIR/prebuilt/bundle-apple-xcframework-macos-10.15"
 if [ -d "$PRODUCT_PATH" ]; then
     echo ""
-    echo "✅ Build completed successfully!"
-    echo "Product path: $PRODUCT_PATH"
+    echo "==> Build completed successfully!"
+    echo "==> Product path: $PRODUCT_PATH"
     echo ""
-    echo "Generated xcrameworks:"
+    echo "==> Generated xcrameworks:"
     ls -1 "$PRODUCT_PATH"
     echo ""
-    echo "License: LGPL 3.0"
+    echo "==> Copying to Packages/FFmpegKit/..."
+    cp -r "$PRODUCT_PATH"/*.xcframework "$SCRIPT_DIR/Packages/FFmpegKit/"
+    echo ""
+    echo "==> License: LGPL 3.0"
 else
     echo ""
-    echo "❌ Build failed. Check build.log for details."
-    echo "Log: $SCRIPT_DIR/$FFMPEG_KIT_DIR/build.log"
+    echo "==> Build failed. Check build.log for details."
+    echo "==> Log: $BUILD_LOG"
     exit 1
 fi

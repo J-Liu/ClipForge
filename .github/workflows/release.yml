@@ -55,7 +55,10 @@ jobs:
         rm /tmp/cert.p12 /tmp/cert.pem
 
     - name: Install build dependencies
-      run: brew install librsvg gnu-sed
+      run: brew install librsvg
+
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
 
     - name: Cache FFmpeg build
       id: cache-ffmpeg
@@ -71,31 +74,17 @@ jobs:
     - name: Build FFmpegKit
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
       run: |
-        # Download and extract ffmpeg-kit-next
-        curl -L -o /tmp/ffmpeg-kit.tar.gz https://github.com/arthenica/ffmpeg-kit-next/archive/refs/tags/v9.0.0.tar.gz
-        tar -xzf /tmp/ffmpeg-kit.tar.gz
+        chmod +x build_ffmpeg.sh
 
-        cd ffmpeg-kit-next-9.0.0
-
-        # Use GNU sed
-        export SED="gsed"
-
-        # Build macOS xcframework
-        if ! ./macos.sh \
-          -x \
-          --enable-lib-macos-videotoolbox \
-          --enable-lib-macos-audiotoolbox \
-          --enable-lib-macos-avfoundation; then
+        # Run build with log output on failure
+        if ! ./build_ffmpeg.sh; then
           echo ""
           echo "==> FFmpegKit build failed. Showing last 200 lines of build.log:"
           echo "=========================================="
-          tail -200 build.log
+          tail -200 ffmpeg-kit-next-9.0.0/build.log
           echo "=========================================="
           exit 1
         fi
-
-        # Copy xcframeworks to Packages/FFmpegKit
-        cp -r prebuilt/bundle-apple-xcframework-macos-10.15/*.xcframework ../Packages/FFmpegKit/
 
     - name: Generate icon
       run: |

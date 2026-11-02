@@ -71,10 +71,9 @@ jobs:
     - name: Build FFmpegKit
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
       run: |
-        # Download ffmpeg-kit-next
+        # Download and extract ffmpeg-kit-next
         curl -L -o /tmp/ffmpeg-kit.tar.gz https://github.com/arthenica/ffmpeg-kit-next/archive/refs/tags/v9.0.0.tar.gz
         tar -xzf /tmp/ffmpeg-kit.tar.gz
-        mv ffmpeg-kit-next-9.0.0 ffmpeg-kit-next-9.0.0
 
         cd ffmpeg-kit-next-9.0.0
 

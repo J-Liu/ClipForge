@@ -240,6 +240,16 @@ jobs:
         echo "============================================"
         echo "Starting signing process..."
         echo "============================================"
+        echo ""
+        echo "==> Trying to sign with identity hash instead of name..."
+        IDENTITY_HASH="47A7C809C855AA7A9E37B45041F949FB70613DFA"
+        echo "Using hash: $IDENTITY_HASH"
+        echo ""
+        echo "==> Running codesign with hash..."
+        codesign --force --deep --sign "$IDENTITY_HASH" ClipForge.app 2>&1 | head -20
+        echo ""
+        echo "==> Verifying signature..."
+        codesign -dvvv ClipForge.app 2>&1 | head -30
         for i in 1 2 3 4; do
           echo ""
           echo "==> Attempt $i of 4"

@@ -105,19 +105,54 @@ jobs:
         echo ""
         echo "==> Verifying keychain state:"
         security show-keychain-info build.keychain
+        echo ""
+        echo "==> Checking for signing certificate..."
+        if security find-identity -v -p codesigning build.keychain | grep -q "Local Development Signing"; then
+          echo "✅ Certificate found"
+        else
+          echo "❌ Certificate not found in build.keychain"
+          echo "==> Available identities:"
+          security find-identity -v -p codesigning build.keychain
+          echo ""
+          echo "==> Re-importing certificate..."
+          echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
+            -T /usr/bin/codesign
+          rm /tmp/cert.p12
+          echo "✅ Certificate re-imported"
+        fi
 
     - name: Sign app
       run: |
         echo "==> Starting signing process..."
+
+        # Verify certificate is available
+        if ! security find-identity -v -p codesigning build.keychain | grep -q "Local Development Signing"; then
+          echo "❌ ERROR: Certificate 'Local Development Signing' not found"
+          echo "==> Available identities:"
+          security find-identity -v -p codesigning
+          exit 1
+        fi
+
         for i in 1 2 3 4; do
           echo ""
           echo "==> Attempt $i of 4"
           echo "==> Running codesign with 60 second timeout..."
           if perl -e '$SIG{ALRM} = sub { exit 14 }; alarm 60; exec @ARGV or exit 1' -- codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1 | tee /tmp/sign.log; then
-            echo "✅ Signed successfully on attempt $i"
+            echo "✅ codesign command succeeded on attempt $i"
             echo ""
             echo "==> Verifying signature..."
             codesign -dvvv ClipForge.app 2>&1 | head -20
+
+            # Check that signature is NOT adhoc
+            if codesign -dvvv ClipForge.app 2>&1 | grep -q "Signature=adhoc"; then
+              echo "❌ ERROR: Signature is adhoc, not using certificate"
+              echo "==> This means the certificate was not found by codesign"
+              exit 1
+            fi
+
+            echo "✅ Signature verified (not adhoc)"
             exit 0
           fi
 

@@ -130,6 +130,9 @@ jobs:
         sudo security add-trusted-cert -d -r trustRoot \
           -k /Library/Keychains/System.keychain /tmp/cert.pem
         rm /tmp/cert.p12 /tmp/cert.pem
+        echo ""
+        echo "Keychain search list after add-trusted-cert:"
+        security list-keychains
 
         echo ""
         echo "============================================"

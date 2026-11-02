@@ -100,6 +100,11 @@ jobs:
 
     - name: Sign app
       run: |
+        echo "==> Setting up keychain for codesign..."
+        security default-keychain -s build.keychain
+        security list-keychains -s build.keychain
+        security unlock-keychain -p "" build.keychain
+
         echo "==> Starting signing process..."
 
         # Verify certificate is available

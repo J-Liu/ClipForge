@@ -107,6 +107,7 @@ jobs:
         security import /tmp/cert.p12 -k build.keychain \
           -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
           -T /usr/bin/codesign
+        rm /tmp/cert.p12
         echo ""
         echo "Checking what's in build.keychain after import..."
         echo "All certificates in build.keychain:"
@@ -124,20 +125,11 @@ jobs:
 
         echo ""
         echo "============================================"
-        echo "STEP 5: Add to trusted root"
+        echo "STEP 5: Final verification"
         echo "============================================"
-        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
-        sudo security add-trusted-cert -d -r trustRoot \
-          -k /Library/Keychains/System.keychain /tmp/cert.pem
-        rm /tmp/cert.p12 /tmp/cert.pem
-        echo ""
-        echo "Keychain search list after add-trusted-cert:"
+        echo "Keychain search list:"
         security list-keychains
-
         echo ""
-        echo "============================================"
-        echo "STEP 6: Final verification"
-        echo "============================================"
         echo "Searching for 'Local Development Signing' in build.keychain..."
         if security find-certificate -c "Local Development Signing" build.keychain >/dev/null 2>&1; then
           echo "✅ Certificate 'Local Development Signing' found in build.keychain"

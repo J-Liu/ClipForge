@@ -130,7 +130,7 @@ jobs:
         security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
         echo "Adding certificate to build.keychain trust store..."
         sudo security add-trusted-cert -d -r trustRoot -k ~/Library/Keychains/build.keychain-db /tmp/cert.pem
-        rm /tmp/cert.p12 /tmp/cert.pem
+        rm /tmp/cert.pem
         echo ""
         echo "============================================"
         echo "STEP 6: Final verification"

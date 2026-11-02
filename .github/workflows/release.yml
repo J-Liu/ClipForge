@@ -125,7 +125,15 @@ jobs:
 
         echo ""
         echo "============================================"
-        echo "STEP 5: Final verification"
+        echo "STEP 5: Add certificate as trusted root to build.keychain"
+        echo "============================================"
+        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
+        echo "Adding certificate to build.keychain trust store..."
+        sudo security add-trusted-cert -d -r trustRoot -k ~/Library/Keychains/build.keychain-db /tmp/cert.pem
+        rm /tmp/cert.p12 /tmp/cert.pem
+        echo ""
+        echo "============================================"
+        echo "STEP 6: Final verification"
         echo "============================================"
         echo "Keychain search list:"
         security list-keychains
@@ -200,7 +208,7 @@ jobs:
     - name: Sign app
       run: |
         echo "============================================"
-        echo "SIGN APP - Searching for certificate"
+        echo "SIGN APP - Pre-signing diagnostics"
         echo "============================================"
         echo ""
         echo "1. Current keychain list:"
@@ -209,55 +217,131 @@ jobs:
         echo "2. Default keychain:"
         security default-keychain
         echo ""
-        echo "3. Searching for codesigning identities..."
+        echo "3. Keychain info:"
+        security show-keychain-info build.keychain 2>&1 || true
         echo ""
-        echo "   3a. Search WITHOUT specifying keychain (what codesign would see):"
+        echo "4. Searching for codesigning identities..."
+        echo ""
+        echo "   4a. Search WITHOUT specifying keychain (what codesign would see):"
         security find-identity -v -p codesigning
         echo ""
-        echo "   3b. Search in build.keychain explicitly:"
+        echo "   4b. Search in build.keychain explicitly:"
         security find-identity -v -p codesigning build.keychain
         echo ""
-        echo "   3c. Search in default keychain:"
+        echo "   4c. Search in default keychain:"
         DEFAULT_KC=$(security default-keychain | tr -d '"')
         security find-identity -v -p codesigning "$DEFAULT_KC"
         echo ""
-        echo "   3d. Search in each keychain in the list:"
+        echo "   4d. Search in each keychain in the list:"
         for kc in $(security list-keychains | tr -d '"'); do
           echo ""
           echo "   Checking: $kc"
           RESULT=$(security find-identity -v -p codesigning "$kc" 2>&1)
           if echo "$RESULT" | grep -q "Local Development Signing"; then
             echo "   ✅ Found 'Local Development Signing' in $kc"
+            echo "   Full identity line:"
+            echo "   $(echo "$RESULT" | grep 'Local Development Signing')"
           else
             echo "   ❌ Not found in $kc"
           fi
-          echo "   Identities: $(echo "$RESULT" | grep -c 'valid identities')"
+          echo "   Valid identities count: $(echo "$RESULT" | grep -c 'valid identities' || echo "0")"
         done
-        echo ""
-        echo "============================================"
-        echo "Starting signing process..."
-        echo "============================================"
 
-        # Get identity hash
+        echo ""
+        echo "5. Getting identity details..."
         IDENTITY_HASH=$(security find-identity -v -p codesigning build.keychain | grep "Local Development Signing" | awk '{print $2}')
         echo "Identity hash: $IDENTITY_HASH"
+        if [ -z "$IDENTITY_HASH" ]; then
+          echo "❌ ERROR: No identity hash found!"
+          echo "This means 'Local Development Signing' is not a valid codesigning identity"
+          exit 1
+        fi
+        echo ""
+        echo "6. Checking if codesign can access this identity..."
+        codesign --display-identity "$IDENTITY_HASH" 2>&1 || echo "(No display-identity support, continuing)"
+
+        echo ""
+        echo "============================================"
+        echo "SIGNING - Attempting to sign with identity"
+        echo "============================================"
         echo ""
 
         # Try signing with name first
         echo "==> Attempt 1: Signing with name 'Local Development Signing'..."
-        if ! codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1 | tee /tmp/sign.log; then
-          echo "❌ Failed with name, trying with hash..."
+        echo "    Command: codesign --force --deep --sign 'Local Development Signing' ClipForge.app"
+        echo ""
+
+        SIGN_OUTPUT=$(codesign --force --deep --sign "Local Development Signing" ClipForge.app 2>&1)
+        SIGN_EXIT=$?
+
+        echo "Exit code: $SIGN_EXIT"
+        echo "Output:"
+        echo "$SIGN_OUTPUT"
+
+        if [ $SIGN_EXIT -ne 0 ]; then
+          echo "❌ Failed with name (exit code: $SIGN_EXIT)"
           echo ""
           echo "==> Attempt 2: Signing with hash '$IDENTITY_HASH'..."
-          if ! codesign --force --deep --sign "$IDENTITY_HASH" ClipForge.app 2>&1 | tee /tmp/sign.log; then
-            echo "❌ ERROR: Signing failed"
+          echo "    Command: codesign --force --deep --sign '$IDENTITY_HASH' ClipForge.app"
+          echo ""
+
+          SIGN_OUTPUT=$(codesign --force --deep --sign "$IDENTITY_HASH" ClipForge.app 2>&1)
+          SIGN_EXIT=$?
+
+          echo "Exit code: $SIGN_EXIT"
+          echo "Output:"
+          echo "$SIGN_OUTPUT"
+
+          if [ $SIGN_EXIT -ne 0 ]; then
+            echo "❌ ERROR: Signing failed with both name and hash"
             exit 1
           fi
         fi
 
         echo ""
-        echo "==> Verifying signature..."
-        codesign -dvvv ClipForge.app 2>&1 | head -30
+        echo "============================================"
+        echo "POST-SIGNING - Verifying what was actually used"
+        echo "============================================"
+        echo ""
+        echo "Checking what identity was used for signing..."
+        echo ""
+
+        # Get detailed signature info
+        SIGNATURE_INFO=$(codesign -dvvv ClipForge.app 2>&1)
+        echo "$SIGNATURE_INFO" | head -40
+
+        echo ""
+        echo "Extracting key info:"
+        echo ""
+
+        # Check for adhoc signature
+        if echo "$SIGNATURE_INFO" | grep -q "Signature=adhoc"; then
+          echo "❌ CRITICAL ERROR: Signature is ADHOC!"
+          echo ""
+          echo "This means codesign fell back to adhoc signing instead of using the certificate."
+          echo "This should NOT happen - the command should have failed instead."
+          echo ""
+          echo "Full signature details:"
+          echo "$SIGNATURE_INFO"
+          exit 1
+        fi
+
+        # Check for the expected identity
+        if echo "$SIGNATURE_INFO" | grep -q "Authority=Local Development Signing"; then
+          echo "✅ Signed with 'Local Development Signing'"
+        elif echo "$SIGNATURE_INFO" | grep -q "Local Development Signing"; then
+          echo "✅ Identity contains 'Local Development Signing'"
+        else
+          echo "⚠️ WARNING: Signature does not appear to be from 'Local Development Signing'"
+          echo ""
+          echo "Authority info:"
+          echo "$SIGNATURE_INFO" | grep "Authority="
+        fi
+
+        # Show the final signature status
+        echo ""
+        echo "Final signature status:"
+        codesign --verify --verbose ClipForge.app 2>&1 || echo "Verification returned non-zero"
 
     - name: Create ZIP for Sparkle
       if: startsWith(github.ref, 'refs/tags/')

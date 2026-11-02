@@ -101,47 +101,10 @@ jobs:
         echo "==> Certificate added to trusted root"
 
         rm /tmp/cert.p12 /tmp/cert.pem
-        echo "==> Certificate import complete"
 
-    - name: Diagnose signing environment
-      run: |
-        echo "==> Keychain list:"
-        security list-keychains
-        echo ""
-        echo "==> Default keychain:"
-        security default-keychain
-        echo ""
-        echo "==> All identities (codesigning):"
-        security find-identity -v -p codesigning
-        echo ""
-        echo "==> All identities (all):"
-        security find-identity -v
-        echo ""
-        echo "==> Checking if 'Local Development Signing' certificate exists..."
-        if security find-certificate -c "Local Development Signing" build.keychain >/dev/null 2>&1; then
-          echo "✅ Certificate found in build.keychain"
-          echo ""
-          echo "==> Certificate PEM (first 20 lines):"
-          security find-certificate -c "Local Development Signing" -p build.keychain | head -20
-          echo ""
-          echo "==> Certificate details:"
-          security find-certificate -c "Local Development Signing" build.keychain
-        else
-          echo "❌ ERROR: Certificate 'Local Development Signing' NOT FOUND in build.keychain"
-          echo ""
-          echo "==> Listing all certificates in build.keychain:"
-          security find-certificate -a build.keychain 2>&1 | grep "labl" || echo "No certificates found"
-        fi
-
-    - name: Unlock keychain before signing
-      run: |
-        echo "==> Ensuring keychain is unlocked..."
-        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
-        security default-keychain -s build.keychain && echo "✅ Default keychain set"
-        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
-        echo ""
-        echo "==> Verifying keychain state:"
-        security show-keychain-info build.keychain
+        echo "==> Verifying certificate..."
+        security find-identity -v -p codesigning build.keychain
+        echo "✅ Certificate import complete"
 
     - name: Sign app
       run: |

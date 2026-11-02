@@ -106,7 +106,7 @@ jobs:
         echo "Importing to: $(security default-keychain)"
         security import /tmp/cert.p12 -k build.keychain \
           -P "${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}" \
-          -T /usr/bin/codesign -v
+          -T /usr/bin/codesign
         echo ""
         echo "Checking what's in build.keychain after import..."
         echo "All certificates in build.keychain:"

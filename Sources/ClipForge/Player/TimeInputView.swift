@@ -81,6 +81,17 @@ class TimeInputView: NSView {
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageChanged),
+            name: .languageChanged,
+            object: nil
+        )
+    }
+
+    @objc private func languageChanged() {
+        goButton.toolTip = L("timeInput.seekToTime")
     }
 
     /// Update the fields from a CMTime, without triggering a seek.

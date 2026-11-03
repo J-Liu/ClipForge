@@ -96,7 +96,6 @@ class PlayerController {
                         }
                     }
                 } else {
-                    NSLog("Skipping unloadable video: \(url)")
                     failedCount += 1
                 }
             }

@@ -27,7 +27,7 @@ class RecorderController: NSObject {
             do {
                 try await stream.stopCapture()
             } catch {
-                NSLog("stopCapture failed: \(error)")
+                // Ignore stopCapture errors
             }
             mic.stop()
             self.stream = nil
@@ -125,7 +125,6 @@ extension RecorderController: SCStreamOutput {
 
 extension RecorderController: SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        NSLog("SCStream stopped with error: \(error)")
         isRecording = false
         onUnexpectedStop?(error)
     }

@@ -6,6 +6,7 @@ import Foundation
 extension Notification.Name {
     static let languageChanged = Notification.Name("LanguageChanged")
     static let recordingModeChanged = Notification.Name("RecordingModeChanged")
+    static let themeChanged = Notification.Name("ThemeChanged")
 }
 
 enum Language: String, CaseIterable {

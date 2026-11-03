@@ -9,6 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var updaterController: SPUStandardUpdaterController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Apply saved theme
+        NSApp.appearance = Settings.shared.theme.appearance
+
         // Initialize Sparkle updater
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,

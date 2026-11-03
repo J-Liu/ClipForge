@@ -92,13 +92,11 @@ class ScreenRecorder {
         switch type {
         case .screen:
             if let input = videoInput, input.isReadyForMoreMediaData {
-                let ok = input.append(sampleBuffer)
-                if !ok { print("video append failed: \(String(describing: writer.error))") }
+                _ = input.append(sampleBuffer)
             }
         case .audio:
             if let input = audioInput, input.isReadyForMoreMediaData {
-                let ok = input.append(sampleBuffer)
-                if !ok { print("audio append failed: \(String(describing: writer.error))") }
+                _ = input.append(sampleBuffer)
             }
         default:
             break
@@ -115,10 +113,7 @@ class ScreenRecorder {
             } else {
                 processed = Self.applyGain(to: sampleBuffer, gain: gain) ?? sampleBuffer
             }
-            let ok = input.append(processed)
-            if !ok {
-                print("mic append failed: \(String(describing: writer.error))")
-            }
+            _ = input.append(processed)
         }
     }
 
@@ -200,10 +195,7 @@ class ScreenRecorder {
         guard let newBuffer = Self.duplicateFrame(from: last, at: time) else { return }
 
         if let input = videoInput, input.isReadyForMoreMediaData {
-            let ok = input.append(newBuffer)
-            if !ok {
-                print("idle append failed: \(String(describing: writer.error))")
-            }
+            _ = input.append(newBuffer)
         }
 
         lastWrittenTime = time

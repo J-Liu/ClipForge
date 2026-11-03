@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright © 2026 Jia Liu
 
-import Foundation
+import AppKit
 
 /// The mode the record button is currently set to.
 enum RecordingMode: String {
@@ -31,6 +31,7 @@ class Settings {
         static let captureMicrophone = "captureMicrophone"
         static let frameRate = "frameRate"
         static let videoCodec = "videoCodec"
+        static let theme = "theme"
     }
 
     var recordingMode: RecordingMode {
@@ -101,6 +102,17 @@ class Settings {
     var videoCodec: String {
         get { defaults.string(forKey: Key.videoCodec) ?? "h264" }
         set { defaults.set(newValue, forKey: Key.videoCodec) }
+    }
+
+    var theme: AppTheme {
+        get {
+            let raw = defaults.string(forKey: Key.theme) ?? AppTheme.system.rawValue
+            return AppTheme(rawValue: raw) ?? .system
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: Key.theme)
+            NotificationCenter.default.post(name: .themeChanged, object: nil)
+        }
     }
 
     var autoPlayOnOpen: Bool {
@@ -295,6 +307,29 @@ enum UpdateCheckFrequency: String, CaseIterable {
         case .weekly: return 604800  // 1 week in seconds
         case .monthly: return 2592000  // 30 days in seconds
         case .never: return nil
+        }
+    }
+}
+
+/// App appearance theme
+enum AppTheme: String, CaseIterable {
+    case system = "system"
+    case light = "light"
+    case dark = "dark"
+
+    var localizedName: String {
+        switch self {
+        case .system: return L("settings.theme.system")
+        case .light: return L("settings.theme.light")
+        case .dark: return L("settings.theme.dark")
+        }
+    }
+
+    var appearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
         }
     }
 }

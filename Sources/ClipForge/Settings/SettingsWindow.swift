@@ -137,12 +137,26 @@ final class SettingsWindow: NSWindow {
     private func createGeneralTab() -> NSView {
         let stack = makeVerticalStack()
 
+        // Row: Theme
+        let themePopup = NSPopUpButton()
+        let currentTheme = Settings.shared.theme
+        for theme in AppTheme.allCases {
+            themePopup.addItem(withTitle: theme.localizedName)
+            themePopup.lastItem?.representedObject = theme
+            if theme == currentTheme {
+                themePopup.select(themePopup.lastItem)
+            }
+        }
+        themePopup.target = self
+        themePopup.action = #selector(themeChanged(_:))
+        stack.addArrangedSubview(makeRow(label: L("settings.general.theme"), control: themePopup))
+
         // Row: Language
         let languagePopup = NSPopUpButton()
         for lang in Language.allCases {
             let title: String
             if lang == .system {
-                title = L("settings.language.system")
+                title = L("settings.language.systemDefault")
             } else {
                 title = lang.nativeName
             }
@@ -650,6 +664,13 @@ final class SettingsWindow: NSWindow {
     }
 
     // MARK: - Actions
+
+    @objc private func themeChanged(_ sender: NSPopUpButton) {
+        guard let theme = sender.selectedItem?.representedObject as? AppTheme else { return }
+        Settings.shared.theme = theme
+        // Apply theme immediately
+        NSApp.appearance = theme.appearance
+    }
 
     @objc private func languageChanged(_ sender: NSPopUpButton) {
         guard let lang = sender.selectedItem?.representedObject as? Language else { return }

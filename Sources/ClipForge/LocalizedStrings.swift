@@ -17,8 +17,13 @@ let enStrings: [String: String] = [
     "settings.about.copyright": "Copyright © 2026 Jia Liu. All rights reserved.",
 
     // Settings - General
+    "settings.general.theme": "Theme",
+    "settings.theme.system": "System Default",
+    "settings.theme.light": "Light",
+    "settings.theme.dark": "Dark",
     "settings.general.language": "Language",
     "settings.language.system": "System",
+    "settings.language.systemDefault": "System Default",
     "settings.general.quitAfterLastWindow": "Quit after closing the last window",
     "settings.general.dontHideWindow": "Don't hide the main window during recording",
     "settings.general.countdown": "Countdown before recording",
@@ -262,8 +267,13 @@ let zhHansStrings: [String: String] = [
     "settings.about.copyright": "版权所有 © 2026 Jia Liu。保留所有权利。",
 
     // Settings - General
+    "settings.general.theme": "主题",
+    "settings.theme.system": "跟随系统",
+    "settings.theme.light": "浅色",
+    "settings.theme.dark": "深色",
     "settings.general.language": "语言",
     "settings.language.system": "跟随系统",
+    "settings.language.systemDefault": "跟随系统",
     "settings.general.quitAfterLastWindow": "关闭最后一个窗口后退出",
     "settings.general.dontHideWindow": "录制时不隐藏主窗口",
     "settings.general.countdown": "录制前倒计时",
@@ -507,8 +517,13 @@ let zhHantStrings: [String: String] = [
     "settings.about.copyright": "版權所有 © 2026 Jia Liu。保留所有權利。",
 
     // Settings - General
+    "settings.general.theme": "主題",
+    "settings.theme.system": "跟隨系統",
+    "settings.theme.light": "淺色",
+    "settings.theme.dark": "深色",
     "settings.general.language": "語言",
     "settings.language.system": "跟隨系統",
+    "settings.language.systemDefault": "跟隨系統",
     "settings.general.quitAfterLastWindow": "關閉最後一個視窗後結束",
     "settings.general.dontHideWindow": "錄製時不隱藏主視窗",
     "settings.general.countdown": "錄製前倒數計時",

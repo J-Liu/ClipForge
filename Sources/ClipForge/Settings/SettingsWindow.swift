@@ -839,7 +839,7 @@ final class SettingsWindow: NSWindow {
     }
 
     @objc private func showLicense() {
-        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 200))
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 350))
         textView.isEditable = false
         textView.isSelectable = true
         textView.font = .systemFont(ofSize: 13, weight: .regular)
@@ -876,7 +876,7 @@ final class SettingsWindow: NSWindow {
         textView.textStorage?.setAttributedString(attributedString)
         textView.textContainerInset = NSSize(width: 8, height: 8)
 
-        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 220))
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 370))
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .bezelBorder

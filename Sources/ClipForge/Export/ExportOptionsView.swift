@@ -21,9 +21,6 @@ class ExportOptionsView: NSView {
     }
 
     private func setupUI() {
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-
         let stackView = NSStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.orientation = .vertical

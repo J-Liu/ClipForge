@@ -92,6 +92,14 @@ class MainViewController: NSViewController {
         return b
     }()
 
+    let menuButton: NSButton = {
+        let b = NSButton(image: NSImage(systemSymbolName: "chevron.down",
+                                        accessibilityDescription: L("main.tooltip.recordMode"))!,
+                         target: nil, action: nil)
+        b.isBordered = false
+        return b
+    }()
+
     let segmentListButton: NSButton = {
         let b = NSButton(image: NSImage(systemSymbolName: "list.bullet",
                                         accessibilityDescription: L("main.tooltip.segmentList"))!,
@@ -244,6 +252,12 @@ class MainViewController: NSViewController {
         dontHideCheckbox.toolTip = L("main.tooltip.dontHide")
         cropOverlay.toolTip = L("main.tooltip.crop")
         segmentBar.toolTip = L("main.tooltip.timeline")
+        menuButton.toolTip = L("main.tooltip.recordMode")
+        segmentListButton.toolTip = L("main.tooltip.segmentList")
+        rotateLeftButton.toolTip = L("main.tooltip.rotateLeft")
+        rotateRightButton.toolTip = L("main.tooltip.rotateRight")
+        flipHorizontalButton.toolTip = L("main.tooltip.flipHorizontal")
+        flipVerticalButton.toolTip = L("main.tooltip.flipVertical")
         updatePlayButtonIcon()
         updateMuteButtonIcon()
         updateRecordButtonIcon()
@@ -308,13 +322,9 @@ class MainViewController: NSViewController {
         recordButton.action = #selector(recordButtonPressed)
         recordButton.sendAction(on: [.leftMouseUp, .rightMouseUp])
 
-        let menuButton = NSButton(image: NSImage(systemSymbolName: "chevron.down",
-                                                  accessibilityDescription: L("main.tooltip.recordMode"))!,
-                                  target: self,
-                                  action: #selector(showRecordModeMenu))
-        menuButton.isBordered = false
+        menuButton.target = self
+        menuButton.action = #selector(showRecordModeMenu)
         menuButton.translatesAutoresizingMaskIntoConstraints = false
-        menuButton.toolTip = L("main.tooltip.recordMode")
 
         volumeSlider.target = self
         volumeSlider.action = #selector(volumeChanged)

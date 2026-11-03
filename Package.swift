@@ -21,11 +21,7 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "ffmpegkit", package: "FFmpegKit")
             ],
-            path: "Sources/ClipForge",
-            resources: [
-                .copy("Resources/LICENSE"),
-                .copy("Resources/NOTICE")
-            ]
+            path: "Sources/ClipForge"
         )
     ]
 )

@@ -213,6 +213,7 @@ let enStrings: [String: String] = [
 
     // Alerts
     "alert.ok": "OK",
+    "OK": "OK",
     "alert.cancel": "Cancel",
     "alert.openSystemSettings": "Open System Settings",
     "alert.someVideosNotLoaded.title": "Some videos could not be loaded",
@@ -465,6 +466,7 @@ let zhHansStrings: [String: String] = [
 
     // Alerts
     "alert.ok": "确定",
+    "OK": "确定",
     "alert.cancel": "取消",
     "alert.openSystemSettings": "打开系统设置",
     "alert.someVideosNotLoaded.title": "部分视频无法加载",
@@ -717,6 +719,7 @@ let zhHantStrings: [String: String] = [
 
     // Alerts
     "alert.ok": "確定",
+    "OK": "確定",
     "alert.cancel": "取消",
     "alert.openSystemSettings": "開啟系統設定",
     "alert.someVideosNotLoaded.title": "部分視訊無法載入",

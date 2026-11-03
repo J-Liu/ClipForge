@@ -842,7 +842,7 @@ final class SettingsWindow: NSWindow {
         let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 350))
         textView.isEditable = false
         textView.isSelectable = true
-        textView.font = .systemFont(ofSize: 13, weight: .regular)
+        textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
 
         let licenseText = """
         GNU AFFERO GENERAL PUBLIC LICENSE
@@ -866,7 +866,7 @@ final class SettingsWindow: NSWindow {
         """
 
         let attributedString = NSMutableAttributedString(string: licenseText, attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: .regular)
+            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
         ])
 
         let urlRange = (licenseText as NSString).range(of: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE")
@@ -884,17 +884,12 @@ final class SettingsWindow: NSWindow {
         let alert = NSAlert()
         alert.messageText = L("settings.about.license")
         alert.accessoryView = scrollView
-        alert.addButton(withTitle: L("alert.ok"))
+        alert.addButton(withTitle: L("OK"))
         alert.beginSheetModal(for: self)
     }
 
     @objc private func showNotice() {
-        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 300))
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.font = .systemFont(ofSize: 12, weight: .regular)
-
-        let noticeText = """
+        let notice = """
         ClipForge - A native macOS screen recorder and precise video editor
         Copyright 2026 Jia Liu
 
@@ -905,10 +900,14 @@ final class SettingsWindow: NSWindow {
         be retained in all copies or substantial portions of the software.
         """
 
-        textView.string = noticeText
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 200))
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .systemFont(ofSize: 13, weight: .regular)
+        textView.string = notice
         textView.textContainerInset = NSSize(width: 8, height: 8)
 
-        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 320))
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 220))
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .bezelBorder
@@ -916,7 +915,7 @@ final class SettingsWindow: NSWindow {
         let alert = NSAlert()
         alert.messageText = L("settings.about.notice")
         alert.accessoryView = scrollView
-        alert.addButton(withTitle: L("alert.ok"))
+        alert.addButton(withTitle: L("OK"))
         alert.beginSheetModal(for: self)
     }
 

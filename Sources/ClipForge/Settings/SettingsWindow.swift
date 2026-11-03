@@ -839,9 +839,42 @@ final class SettingsWindow: NSWindow {
     }
 
     @objc private func showLicense() {
-        if let url = URL(string: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE") {
-            NSWorkspace.shared.open(url)
-        }
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 200))
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .systemFont(ofSize: 13, weight: .regular)
+
+        let licenseText = """
+        GNU AFFERO GENERAL PUBLIC LICENSE
+        Version 3, 19 November 2007
+
+        Copyright (C) 2007 Free Software Foundation, Inc.
+        Copyright (C) 2026 Jia Liu
+
+        https://github.com/J-Liu/ClipForge/blob/main/LICENSE
+        """
+
+        let attributedString = NSMutableAttributedString(string: licenseText, attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .regular)
+        ])
+
+        let urlRange = (licenseText as NSString).range(of: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE")
+        attributedString.addAttribute(.link, value: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE", range: urlRange)
+        attributedString.addAttribute(.foregroundColor, value: NSColor.linkColor, range: urlRange)
+
+        textView.textStorage?.setAttributedString(attributedString)
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 220))
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+
+        let alert = NSAlert()
+        alert.messageText = L("settings.about.license")
+        alert.accessoryView = scrollView
+        alert.addButton(withTitle: L("alert.ok"))
+        alert.beginSheetModal(for: self)
     }
 
     @objc private func showNotice() {

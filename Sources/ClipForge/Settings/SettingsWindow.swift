@@ -848,9 +848,13 @@ final class SettingsWindow: NSWindow {
         GNU AFFERO GENERAL PUBLIC LICENSE
         Version 3, 19 November 2007
 
-        Copyright (C) 2007 Free Software Foundation, Inc.
+        Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+
+        ClipForge is licensed under the GNU Affero General Public License v3.0 or later.
+
         Copyright (C) 2026 Jia Liu
 
+        Full license text:
         https://github.com/J-Liu/ClipForge/blob/main/LICENSE
         """
 

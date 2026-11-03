@@ -844,35 +844,14 @@ final class SettingsWindow: NSWindow {
         textView.isSelectable = true
         textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
 
-        let licenseText = """
-        GNU AFFERO GENERAL PUBLIC LICENSE
-        Version 3, 19 November 2007
+        var licenseText = ""
+        if let url = Bundle.module.url(forResource: "LICENSE", withExtension: nil),
+           let data = try? Data(contentsOf: url),
+           let text = String(data: data, encoding: .utf8) {
+            licenseText = text
+        }
 
-        Copyright (C) 2007 Free Software Foundation, Inc.
-
-        Additional Permission under Section 7
-
-        As an additional permission under section 7, you are allowed to distribute
-        the software through an app store, even if that store has restrictive terms
-        and conditions that are incompatible with the AGPL, provided that the source
-        is also available under the AGPL with or without this permission through a
-        channel without those restrictive terms and conditions.
-
-        Copyright (C) 2026 Jia Liu
-
-        Full license text:
-        https://github.com/J-Liu/ClipForge/blob/main/LICENSE
-        """
-
-        let attributedString = NSMutableAttributedString(string: licenseText, attributes: [
-            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
-        ])
-
-        let urlRange = (licenseText as NSString).range(of: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE")
-        attributedString.addAttribute(.link, value: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE", range: urlRange)
-        attributedString.addAttribute(.foregroundColor, value: NSColor.linkColor, range: urlRange)
-
-        textView.textStorage?.setAttributedString(attributedString)
+        textView.string = licenseText
         textView.textContainerInset = NSSize(width: 8, height: 8)
 
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 370))
@@ -888,21 +867,19 @@ final class SettingsWindow: NSWindow {
     }
 
     @objc private func showNotice() {
-        let notice = """
-        ClipForge — A video recording and editing tool.
-        Copyright 2026 Jia Liu
-
-        This product includes software developed by Jia Liu.
-
-        This software is licensed under AGPL-3.0-or-later with an additional
-        permission under Section 7. See LICENSE for details.
-        """
-
         let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 300))
         textView.isEditable = false
         textView.isSelectable = true
-        textView.font = .systemFont(ofSize: 14, weight: .regular)
-        textView.string = notice
+        textView.font = .systemFont(ofSize: 12, weight: .regular)
+
+        var noticeText = ""
+        if let url = Bundle.module.url(forResource: "NOTICE", withExtension: nil),
+           let data = try? Data(contentsOf: url),
+           let text = String(data: data, encoding: .utf8) {
+            noticeText = text
+        }
+
+        textView.string = noticeText
         textView.textContainerInset = NSSize(width: 8, height: 8)
 
         let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 320))

@@ -622,6 +622,22 @@ final class SettingsWindow: NSWindow {
         checkUpdatesButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(checkUpdatesButton)
 
+        // License button
+        let licenseButton = NSButton(title: L("settings.about.license"), target: self, action: #selector(showLicense))
+        licenseButton.bezelStyle = .rounded
+        licenseButton.translatesAutoresizingMaskIntoConstraints = false
+
+        // Notice button
+        let noticeButton = NSButton(title: L("settings.about.notice"), target: self, action: #selector(showNotice))
+        noticeButton.bezelStyle = .rounded
+        noticeButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let buttonRow = NSStackView(views: [licenseButton, noticeButton])
+        buttonRow.orientation = .horizontal
+        buttonRow.spacing = 16
+        buttonRow.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(buttonRow)
+
         NSLayoutConstraint.activate([
             appIcon.topAnchor.constraint(equalTo: container.topAnchor, constant: 40),
             appIcon.centerXAnchor.constraint(equalTo: container.centerXAnchor),
@@ -640,7 +656,10 @@ final class SettingsWindow: NSWindow {
 
             checkUpdatesButton.topAnchor.constraint(equalTo: githubButton.bottomAnchor, constant: 12),
             checkUpdatesButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            checkUpdatesButton.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
+
+            buttonRow.topAnchor.constraint(equalTo: checkUpdatesButton.bottomAnchor, constant: 12),
+            buttonRow.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            buttonRow.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
         ])
 
         return container
@@ -817,6 +836,85 @@ final class SettingsWindow: NSWindow {
         if let url = URL(string: "https://github.com/J-Liu/ClipForge") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    @objc private func showLicense() {
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 350))
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+
+        let licenseText = """
+        GNU AFFERO GENERAL PUBLIC LICENSE
+        Version 3, 19 November 2007
+
+        Copyright (C) 2007 Free Software Foundation, Inc.
+
+        Additional Permission under Section 7
+
+        As an additional permission under section 7, you are allowed to distribute
+        the software through an app store, even if that store has restrictive terms
+        and conditions that are incompatible with the AGPL, provided that the source
+        is also available under the AGPL with or without this permission through a
+        channel without those restrictive terms and conditions.
+
+        Copyright (C) 2026 Jia Liu
+
+        Full license text:
+        https://github.com/J-Liu/ClipForge/blob/main/LICENSE
+        """
+
+        let attributedString = NSMutableAttributedString(string: licenseText, attributes: [
+            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        ])
+
+        let urlRange = (licenseText as NSString).range(of: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE")
+        attributedString.addAttribute(.link, value: "https://github.com/J-Liu/ClipForge/blob/main/LICENSE", range: urlRange)
+        attributedString.addAttribute(.foregroundColor, value: NSColor.linkColor, range: urlRange)
+
+        textView.textStorage?.setAttributedString(attributedString)
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 370))
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+
+        let alert = NSAlert()
+        alert.messageText = L("settings.about.license")
+        alert.accessoryView = scrollView
+        alert.addButton(withTitle: L("alert.ok"))
+        alert.beginSheetModal(for: self)
+    }
+
+    @objc private func showNotice() {
+        let notice = """
+        ClipForge — A video recording and editing tool.
+        Copyright 2026 Jia Liu
+
+        This product includes software developed by Jia Liu.
+
+        This software is licensed under AGPL-3.0-or-later with an additional
+        permission under Section 7. See LICENSE for details.
+        """
+
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 480, height: 300))
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .systemFont(ofSize: 14, weight: .regular)
+        textView.string = notice
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 500, height: 320))
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+
+        let alert = NSAlert()
+        alert.messageText = L("settings.about.notice")
+        alert.accessoryView = scrollView
+        alert.addButton(withTitle: L("alert.ok"))
+        alert.beginSheetModal(for: self)
     }
 
     // MARK: - Tab Selection

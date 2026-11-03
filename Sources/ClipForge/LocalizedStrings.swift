@@ -15,6 +15,8 @@ let enStrings: [String: String] = [
     // Settings - About
     "settings.about.version": "Version %@ (Build %@)",
     "settings.about.copyright": "Copyright © 2026 Jia Liu. All rights reserved.",
+    "settings.about.license": "License",
+    "settings.about.notice": "Notice",
 
     // Settings - General
     "settings.general.theme": "Theme",
@@ -265,6 +267,8 @@ let zhHansStrings: [String: String] = [
     // Settings - About
     "settings.about.version": "版本 %@ (构建 %@)",
     "settings.about.copyright": "版权所有 © 2026 Jia Liu。保留所有权利。",
+    "settings.about.license": "许可证",
+    "settings.about.notice": "声明",
 
     // Settings - General
     "settings.general.theme": "主题",
@@ -515,6 +519,8 @@ let zhHantStrings: [String: String] = [
     // Settings - About
     "settings.about.version": "版本 %@ (建置 %@)",
     "settings.about.copyright": "版權所有 © 2026 Jia Liu。保留所有權利。",
+    "settings.about.license": "授權",
+    "settings.about.notice": "聲明",
 
     // Settings - General
     "settings.general.theme": "主題",
